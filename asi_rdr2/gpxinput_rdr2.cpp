@@ -129,7 +129,25 @@ const char* GroupName(uint32_t h) {
 
 
 
-BOOL ReadAmmo(int ped, uint32_t weapon, int* out) {
+
+
+
+BOOL GroupHasClip(uint32_t group) {
+    switch (group) {
+    case GPRDR2_GRP_PISTOL:
+    case GPRDR2_GRP_REVOLVER:
+    case GPRDR2_GRP_REPEATER:
+    case GPRDR2_GRP_RIFLE:
+    case GPRDR2_GRP_SHOTGUN:
+    case GPRDR2_GRP_SNIPER:
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+BOOL ReadAmmo(int ped, uint32_t weapon, uint32_t group, int* out) {
+    if (!GroupHasClip(group)) return FALSE;   
     if (g_ammoFaults >= 3) return FALSE;
 
     
@@ -213,13 +231,23 @@ void Tick(void) {
 
             g_step = 2;
             uint32_t weapon    = CurrentWeapon(ped);
+        
+
+
+        {
+            static uint32_t lastAmmoWeapon = 0;
+            if (weapon != lastAmmoWeapon) {
+                lastAmmoWeapon = weapon;
+                g_ammoFaults = 0;
+            }
+        }
             uint32_t group     = 0;
             int      ammo      = 0;
             if (weapon) {
                 g_step = 3;
                 group = (uint32_t)rdr2_call1(N_GET_WEAPONTYPE_GROUP, weapon);
                 g_step = 4;
-                ReadAmmo(ped, weapon, &ammo);
+                ReadAmmo(ped, weapon, group, &ammo);
             }
             g_step = 5;
             uint32_t sinceShot = (uint32_t)rdr2_call1(N_TIME_SINCE_PED_LAST_SHOT, (uint64_t)(int64_t)ped);

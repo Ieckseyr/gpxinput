@@ -150,17 +150,33 @@ inline BYTE ClampToByte(float v) {
 
 
 
+
+BYTE g_lastPadLT[4] = {0};
+BYTE g_lastPadRT[4] = {0};
+
 void ReadPadTriggers(uint32_t controller, BYTE* lt, BYTE* rt) {
-    *lt = 0;
-    *rt = 0;
+    if (!lt || !rt) return;
+
     GpFnGetState fn = gpreal::GetState();
-    if (!fn) return;
+    if (!fn) { *lt = g_lastPadLT[controller & 3]; *rt = g_lastPadRT[controller & 3]; return; }
+
     GpXInputState st;
     memset(&st, 0, sizeof(st));
     if (fn(controller, &st) == ERROR_SUCCESS) {
         *lt = st.Gamepad.bLeftTrigger;
         *rt = st.Gamepad.bRightTrigger;
+    } else {
+        
+
+
+
+
+        *lt = g_lastPadLT[controller & 3];
+        *rt = g_lastPadRT[controller & 3];
+        return;
     }
+    g_lastPadLT[controller & 3] = *lt;
+    g_lastPadRT[controller & 3] = *rt;
 }
 
 

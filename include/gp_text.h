@@ -44,17 +44,24 @@ static __inline void GpWideToUtf8(const wchar_t* src, char* dst, int dstChars) {
 
 
 static __inline HANDLE GpConsoleHandle(void) {
+    
+
+
+
+
+
     static HANDLE cached = INVALID_HANDLE_VALUE;
-    if (cached != INVALID_HANDLE_VALUE) return cached;
+    static BOOL   tried  = FALSE;
+    if (tried) return cached;
+    tried = TRUE;
 
     HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
-    DWORD mode = 0;
-    if (h && h != INVALID_HANDLE_VALUE && GetConsoleMode(h, &mode)) {
-        cached = h;
+    if (h && h != INVALID_HANDLE_VALUE) {
+        DWORD mode = 0;
+        if (GetConsoleMode(h, &mode)) { cached = h; return cached; }
+        cached = nullptr;              
         return cached;
     }
-
-    
 
     h = CreateFileW(L"CONOUT$", GENERIC_READ | GENERIC_WRITE,
                     FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr,

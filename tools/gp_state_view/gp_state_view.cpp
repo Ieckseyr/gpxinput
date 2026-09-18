@@ -114,9 +114,21 @@ int main(int argc, char** argv) {
             if (!once) { Sleep(200); continue; }
             break;
         }
+                
+
+
+        BOOL writerAlive = FALSE;
+        HANDLE wp = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, s.writerPid);
+        if (wp) {
+            DWORD code = 0;
+            writerAlive = GetExitCodeProcess(wp, &code) && code == STILL_ACTIVE;
+            CloseHandle(wp);
+        }
         GpConPrintf("  心跳     %u 帧   最后更新 %ums 前   %s\n",
-               s.frame, age,
-               (age <= GPRDR2_TIMEOUT_MS) ? "在线" : "已失效(代理会忽略)");
+                   s.frame, age,
+                   !writerAlive ? "游戏已退出（这是最后一份快照）"
+                                : (age <= GPRDR2_TIMEOUT_MS ? "在线"
+                                                           : "已失效(代理会忽略)"));
         GpConPrintf("  写入进程 pid=%u   玩家 ped=%u\n", s.writerPid, s.playerPed);
         GpConPrintf("--------------------------------------\n");
         GpConPrintf("--------------------------------------\n");
@@ -137,7 +149,6 @@ int main(int argc, char** argv) {
                YesNo(s.onFoot), YesNo(s.onMount), YesNo(s.inVehicle), YesNo(s.menuActive));
         GpConPrintf("  速度     马=%0.2f  玩家=%0.2f\n", s.horseSpeed, s.playerSpeed);
         GpConPrintf("======================================\n");
-        (void)Row; (void)lastFrame;
 
         if (once) break;
         Sleep(200);
