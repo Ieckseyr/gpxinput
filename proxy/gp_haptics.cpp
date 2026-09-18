@@ -76,6 +76,9 @@ struct CtrlState {
     DWORD rideUntil;
     
     BOOL  wasReloading;
+    BOOL  wasAirborne;    
+    BOOL  wasSlowMo;      
+    int   lastHealth;     
     DWORD bowDrawStart;
     BOOL  aimActiveNow, bowActiveNow;       
     BOOL  stateSeenOnce;   
@@ -458,6 +461,13 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
     if (g_s.aimRampCurve > 8.0f) g_s.aimRampCurve = 8.0f;
     if (g_s.tickEnvMs < 10) g_s.tickEnvMs = 10;
     if (g_s.drawEnvMs < 10) g_s.drawEnvMs = 10;
+    if (g_s.landGain < 0.0f) g_s.landGain = 0.0f;
+    if (g_s.landEnvMs < 10) g_s.landEnvMs = 10;
+    if (g_s.injuryGain < 0.0f) g_s.injuryGain = 0.0f;
+    if (g_s.injuryEnvMs < 10) g_s.injuryEnvMs = 10;
+    if (g_s.lowHealthHeartbeat < 0.0f) g_s.lowHealthHeartbeat = 0.0f;
+    if (g_s.deadeyeGain < 0.0f) g_s.deadeyeGain = 0.0f;
+    if (g_s.deadeyeEnvMs < 10) g_s.deadeyeEnvMs = 10;
     if (g_s.bowDrawGain < 0.0f) g_s.bowDrawGain = 0.0f;
     if (g_s.bowDrawGain > 1.0f) g_s.bowDrawGain = 1.0f;
     if (g_s.bowDrawRampMs < 100) g_s.bowDrawRampMs = 100;
@@ -769,6 +779,41 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
     cs->wasReloading = st->reloading != 0;
 
     cs->stateSeenOnce = TRUE;
+    
+
+
+
+
+
+    BOOL airborneNow = (st->jumping || st->falling || st->vaulting) != 0;
+    if (cs->stateValid)
+    {
+        if (cs->wasAirborne && !airborneNow && st->grounded && g_s.landGain > 0.0f) {
+            float amp = st->falling ? g_s.landGain : g_s.landGain * 0.6f;
+            GpFireEffect(controller, GP_FX_DRAW, amp, g_s.landEnvMs, 0);
+            GP_LOG_DEBUG("haptics: 落地 -> 反馈（坠落=%d）", (int)st->falling);
+        }
+        if (st->health > 0 && st->maxHealth > 0 &&
+            st->health < cs->lastHealth && g_s.injuryGain > 0.0f) {
+            GpFireEffect(controller, GP_FX_TICK, g_s.injuryGain, g_s.injuryEnvMs, 2);
+            GP_LOG_DEBUG("haptics: 受伤（%d -> %d）-> 反馈", cs->lastHealth, (int)st->health);
+        }
+        BOOL slowNow = st->slowMotion != 0;
+        if (slowNow && !cs->wasSlowMo && g_s.deadeyeGain > 0.0f) {
+            GpFireEffect(controller, GP_FX_DRAW, g_s.deadeyeGain, g_s.deadeyeEnvMs, 2);
+            GP_LOG_DEBUG("haptics: 进入慢动作（死眼/演出）-> 反馈");
+        }
+        cs->wasAirborne = airborneNow;
+        cs->wasSlowMo   = slowNow;
+        cs->lastHealth  = st->health;
+    }
+    else
+    {
+        cs->wasAirborne = airborneNow;
+        cs->wasSlowMo   = st->slowMotion != 0;
+        cs->lastHealth  = st->health;
+    }
+
     cs->onMount    = st->onMount != 0;
     cs->horseGait  = st->horseGait;
     cs->horseSpeed = st->horseSpeed;

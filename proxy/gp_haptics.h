@@ -235,6 +235,19 @@ struct GpHapticsSettings {
     
 
 
+
+
+    float landGain;        
+    int   landEnvMs;
+    float injuryGain;      
+    int   injuryEnvMs;
+    float lowHealthHeartbeat;  
+    float deadeyeGain;     
+    int   deadeyeEnvMs;
+
+    
+
+
     float bowDrawGain;
     int   bowDrawRampMs;      
 

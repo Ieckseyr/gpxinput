@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 #define GPRDR2_MAGIC   0x52533231u   
-#define GPRDR2_VERSION 4u
+#define GPRDR2_VERSION 5u
 #define GPRDR2_NAME    L"Local\\GpRdr2State_v1"
 
 
@@ -85,6 +85,16 @@ typedef struct GpRdr2State {
 
 
     float    timeScale;
+
+    
+    uint8_t  slowMotion;      
+
+
+    uint8_t  uiOverlay;       
+
+    uint8_t  grounded;        
+    uint8_t  deadOrDying;     
+    uint8_t  prone;           
 
     int      health;          
     int      maxHealth;       

@@ -335,6 +335,13 @@ void GpConfigLoad(GpProxyConfig* cfg) {
         h.tickEnvMs       = ReadInt(ini, L"Haptics", L"TickEnvMs", h.tickEnvMs);
         h.drawGain        = ReadFloat(ini, L"Haptics", L"DrawGain", h.drawGain);
         h.bowDrawGain      = ReadFloat(ini, L"Haptics", L"BowDrawGain", h.bowDrawGain);
+        h.landGain         = ReadFloat(ini, L"Haptics", L"LandGain", h.landGain);
+        h.landEnvMs        = ReadInt(ini, L"Haptics", L"LandEnvMs", h.landEnvMs);
+        h.injuryGain       = ReadFloat(ini, L"Haptics", L"InjuryGain", h.injuryGain);
+        h.injuryEnvMs      = ReadInt(ini, L"Haptics", L"InjuryEnvMs", h.injuryEnvMs);
+        h.lowHealthHeartbeat = ReadFloat(ini, L"Haptics", L"LowHealthHeartbeat", h.lowHealthHeartbeat);
+        h.deadeyeGain      = ReadFloat(ini, L"Haptics", L"DeadeyeGain", h.deadeyeGain);
+        h.deadeyeEnvMs     = ReadInt(ini, L"Haptics", L"DeadeyeEnvMs", h.deadeyeEnvMs);
         h.bowDrawRampMs    = ReadInt(ini, L"Haptics", L"BowDrawRampMs", h.bowDrawRampMs);
         h.reloadGain       = ReadFloat(ini, L"Haptics", L"ReloadGain", h.reloadGain);
         h.reloadEnvMs      = ReadInt(ini, L"Haptics", L"ReloadEnvMs", h.reloadEnvMs);

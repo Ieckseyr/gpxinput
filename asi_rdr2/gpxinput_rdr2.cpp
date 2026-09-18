@@ -348,6 +348,17 @@ void Tick(void) {
     else
         g_state->playerGait = 0;
 
+    g_state->deadOrDying = (uint8_t)(rdr2_call2(N_IS_PED_DEAD_OR_DYING, (uint64_t)(int64_t)ped, 0) != 0);
+    g_state->prone       = (uint8_t)(rdr2_call1(N_IS_PED_PRONE,       (uint64_t)(int64_t)ped) != 0);
+    g_state->grounded    = (uint8_t)(!g_state->jumping && !g_state->falling &&
+                                     !g_state->climbing && !g_state->vaulting &&
+                                     !g_state->swimming && !g_state->onMount);
+
+    
+    g_state->slowMotion = (uint8_t)(g_state->timeScale < 0.95f && g_state->timeScale > 0.05f);
+    g_state->uiOverlay  = (uint8_t)(!g_state->menuActive &&
+                                    rdr2_call1(N_IS_PLAYER_CONTROL_ON, 0) == 0);
+
     g_state->health    = (int)rdr2_call1(N_GET_ENTITY_HEALTH, (uint64_t)(int64_t)ped);
     g_state->maxHealth = (int)rdr2_call1(N_GET_PED_MAX_HEALTH, (uint64_t)(int64_t)ped);
 
