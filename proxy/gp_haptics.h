@@ -114,6 +114,11 @@ struct GpHapticsSettings {
     float drawGain;
     int   drawEnvMs;
 
+    
+
+    float ltPressGain;
+    int   ltPressEnvMs;
+
     GpWeaponProfile weapon[GP_WEAPON_SLOTS];
     int             weaponCount;
 };

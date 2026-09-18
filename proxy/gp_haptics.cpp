@@ -266,6 +266,8 @@ void GpDefaultHapticsSettings(GpHapticsSettings* s) {
     s->aimRampGain     = 0.80f;  
     s->tickGain        = 0.35f;  
     s->tickEnvMs       = 45;
+    s->ltPressGain     = 0.55f;  
+    s->ltPressEnvMs    = 90;
     s->drawGain        = 0.55f;  
     s->drawEnvMs       = 80;
 
@@ -520,18 +522,19 @@ void GpOnPadInput(uint32_t controller, DWORD now, BYTE leftTrigger, BYTE rightTr
 
     
 
+
+
+
+
     BYTE ltTh = (BYTE)(g_s.aimTriggerLevel * 255.0f + 0.5f);
     BOOL ltNow = leftTrigger >= ltTh;
     if (ltNow && !cs->ltDown) {
         cs->ltDown = TRUE;
         cs->ltDownTick = now;
+        FireAux(cs, now, g_s.ltPressGain, g_s.ltPressEnvMs, 1);
+        GP_LOG_DEBUG("haptics: LT 按下 -> 反馈");
     } else if (!ltNow && cs->ltDown) {
-        DWORD held = now - cs->ltDownTick;
         cs->ltDown = FALSE;
-        if (held < (DWORD)g_s.aimHoldMs && (cs->menuActive || !cs->armed)) {
-            FireAux(cs, now, g_s.tickGain, g_s.tickEnvMs, 2);
-            GP_LOG_DEBUG("haptics: LT 轻点 %ums -> 切换反馈", held);
-        }
     }
 
     cs->prevLT = leftTrigger;
@@ -776,11 +779,10 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
         if (t < (DWORD)cs->auxEnvMs) {
             float x = (float)t / (float)cs->auxEnvMs;
             float env = powf(1.0f - x, 1.5f) * cs->auxAmp * 255.0f;
-            if (cs->auxSide == 1)      addTrigL += env;
-            else if (cs->auxSide == 2) { addTrigL += env; addTrigR += env; }
-            else                       addTrigR += env;
-            addBodyL += env * 0.25f;
-            addBodyR += env * 0.25f;
+            if (cs->auxSide == 1)      { addTrigL += env; addBodyL += env * 0.25f; }
+            else if (cs->auxSide == 2) { addTrigL += env; addTrigR += env;
+                                         addBodyL += env * 0.25f; addBodyR += env * 0.25f; }
+            else                       { addTrigR += env; addBodyR += env * 0.25f; }
         } else {
             cs->auxActive = FALSE;
         }

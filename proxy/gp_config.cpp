@@ -246,6 +246,8 @@ void GpConfigLoad(GpProxyConfig* cfg) {
         h.tickEnvMs       = ReadInt(ini, L"Haptics", L"TickEnvMs", h.tickEnvMs);
         h.drawGain        = ReadFloat(ini, L"Haptics", L"DrawGain", h.drawGain);
         h.drawEnvMs       = ReadInt(ini, L"Haptics", L"DrawEnvMs", h.drawEnvMs);
+        h.ltPressGain     = ReadFloat(ini, L"Haptics", L"LtPressGain", h.ltPressGain);
+        h.ltPressEnvMs    = ReadInt(ini, L"Haptics", L"LtPressEnvMs", h.ltPressEnvMs);
 
         
 
