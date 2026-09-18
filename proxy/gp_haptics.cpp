@@ -73,6 +73,7 @@ struct CtrlState {
     float rideAmp;
     DWORD rideUntil;
     
+    BOOL  wasReloading;    
     BOOL  stateSeenOnce;   
     BOOL  onMount;
     float horseSpeed;
@@ -261,6 +262,8 @@ void GpDefaultHapticsSettings(GpHapticsSettings* s) {
     s->ridePeakThresh   = 0.10f;
     s->rideSpeedLow     = 1.0f;
     s->rideCurve        = 1.6f;
+    s->rideAmpMin       = 0.35f;
+    s->rideAmpMax       = 0.70f;
     s->rideBeats        = 4;
     s->rideBeatAccent   = 0.6f;
     s->rideSpeedHigh    = 9.0f;
@@ -286,6 +289,9 @@ void GpDefaultHapticsSettings(GpHapticsSettings* s) {
     s->ltPressEnable   = FALSE;
     s->ltPressGain     = 0.55f;  
     s->ltPressEnvMs    = 90;
+    s->reloadGain      = 0.0f;   
+    s->reloadEnvMs     = 70;
+    s->reloadSide      = 2;
     s->drawGain        = 0.55f;  
     s->drawEnvMs       = 80;
 
@@ -347,6 +353,9 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
         g_s.rideSpeedHigh = g_s.rideSpeedLow + 0.5f;
     if (g_s.rideCurve < 0.5f) g_s.rideCurve = 0.5f;
     if (g_s.rideCurve > 4.0f) g_s.rideCurve = 4.0f;
+    if (g_s.rideAmpMin < 0.0f) g_s.rideAmpMin = 0.0f;
+    if (g_s.rideAmpMax > 1.0f) g_s.rideAmpMax = 1.0f;
+    if (g_s.rideAmpMax < g_s.rideAmpMin) g_s.rideAmpMax = g_s.rideAmpMin;
     if (g_s.rideBeats < 1) g_s.rideBeats = 1;
     if (g_s.rideBeats > 8) g_s.rideBeats = 8;
     if (g_s.rideBeatAccent < 0.0f) g_s.rideBeatAccent = 0.0f;
@@ -361,6 +370,9 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
     if (g_s.aimRampGain > 3.0f) g_s.aimRampGain = 3.0f;
     if (g_s.tickEnvMs < 10) g_s.tickEnvMs = 10;
     if (g_s.drawEnvMs < 10) g_s.drawEnvMs = 10;
+    if (g_s.reloadGain < 0.0f) g_s.reloadGain = 0.0f;
+    if (g_s.reloadEnvMs < 10) g_s.reloadEnvMs = 10;
+    if (g_s.reloadEnvMs > 500) g_s.reloadEnvMs = 500;
     if (g_s.aimBreathHz < 0.0f) g_s.aimBreathHz = 0.0f;
     if (g_s.aimBreathHz > 5.0f) g_s.aimBreathHz = 5.0f;
     if (g_s.weaponCount < 0) g_s.weaponCount = 0;
@@ -578,7 +590,7 @@ void GpOnPadInput(uint32_t controller, DWORD now, BYTE leftTrigger, BYTE rightTr
         cs->ltDown = TRUE;
         cs->ltDownTick = now;
         if (g_s.ltPressEnable)
-            FireAux(cs, now, g_s.ltPressGain, g_s.ltPressEnvMs, 1);
+            GpFireEffect(controller, GP_FX_LT, g_s.ltPressGain, g_s.ltPressEnvMs, 1);
         GP_LOG_DEBUG("haptics: LT 按下 -> 反馈");
     } else if (!ltNow && cs->ltDown) {
         cs->ltDown = FALSE;
@@ -609,6 +621,15 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
 
     cs->menuActive = st->menuActive != 0;
     cs->armed      = st->armed != 0;
+    
+
+
+    if (st->reloading && !cs->wasReloading) {
+        GP_LOG_DEBUG("haptics: 开始装弹 -> 反馈（增益 %.2f）", (double)g_s.reloadGain);
+        GpFireEffect(controller, GP_FX_RELOAD, g_s.reloadGain, g_s.reloadEnvMs, g_s.reloadSide);
+    }
+    cs->wasReloading = st->reloading != 0;
+
     cs->stateSeenOnce = TRUE;
     cs->onMount    = st->onMount != 0;
     cs->horseSpeed = st->horseSpeed;
@@ -619,7 +640,7 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
         
 
         if (st->weaponHash != 0) {
-            FireAux(cs, now, g_s.drawGain, g_s.drawEnvMs, 2);
+            GpFireEffect(controller, GP_FX_DRAW, g_s.drawGain, g_s.drawEnvMs, 2);
             GP_LOG_DEBUG("haptics: 武器变为 0x%08X -> 掏枪反馈", st->weaponHash);
         }
         cs->lastWeapon  = st->weaponHash;
@@ -775,7 +796,10 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
 
             
 
-            cs->rideAmp   = powf(k, g_s.rideCurve);   
+            
+
+            cs->rideAmp   = g_s.rideAmpMin +
+                            (g_s.rideAmpMax - g_s.rideAmpMin) * powf(k, g_s.rideCurve);
             cs->rideUntil = now + 400;           
 
             
@@ -915,6 +939,14 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
         out->rightTrigger = ClampByte((float)out->rightTrigger + addTrigR);
 
     (void)hasGame;   
+}
+
+void GpFireEffect(uint32_t controller, int effectId, float gain, int envMs, int side) {
+    CtrlState* cs = State(controller);
+    if (!cs) return;
+    if (gain <= 0.0f) return;                 
+    (void)effectId;                           
+    FireAux(cs, GetTickCount(), gain, envMs, side);
 }
 
 void GpResetHaptics(void) {

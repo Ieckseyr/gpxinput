@@ -116,6 +116,11 @@ struct GpHapticsSettings {
 
     
 
+    
+
+    float rideAmpMin;
+    float rideAmpMax;
+
     int   rideBeats;
     float rideBeatAccent;      
 
@@ -148,6 +153,12 @@ struct GpHapticsSettings {
     
     float tickGain;
     int   tickEnvMs;
+
+    
+
+    float reloadGain;
+    int   reloadEnvMs;
+    int   reloadSide;
 
     
     float drawGain;
@@ -221,6 +232,30 @@ typedef struct GpHapticsStatus {
 } GpHapticsStatus;
 
 void GpHapticsGetStatus(uint32_t controller, DWORD now, GpHapticsStatus* out);
+
+
+
+
+
+
+
+
+
+
+
+enum {
+    GP_FX_DRAW   = 1,   
+    GP_FX_TICK   = 2,   
+    GP_FX_RELOAD = 3,   
+    GP_FX_LT     = 4,   
+};
+
+
+
+
+
+
+void GpFireEffect(uint32_t controller, int effectId, float gain, int envMs, int side);
 
 
 void GpResetHaptics(void);
