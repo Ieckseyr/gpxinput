@@ -147,7 +147,17 @@ int main(int argc, char** argv) {
                YesNo(s.shooting), YesNo(s.aiming), YesNo(s.reloading), YesNo(s.armed));
         GpConPrintf("  位置     步行=%s  骑马=%s  车内=%s  菜单=%s\n",
                YesNo(s.onFoot), YesNo(s.onMount), YesNo(s.inVehicle), YesNo(s.menuActive));
-        GpConPrintf("  速度     马=%0.2f  玩家=%0.2f\n", s.horseSpeed, s.playerSpeed);
+        GpConPrintf("  速度     马=%0.2f  玩家=%0.2f   步态 玩家=%s 坐骑=%s\n",
+                    s.horseSpeed, s.playerSpeed,
+                    s.playerGait == 2 ? "冲刺" : (s.playerGait == 1 ? "跑" : "走"),
+                    s.horseGait == 255 ? "不在马上" :
+                        (s.horseGait == 2 ? "疾驰" : (s.horseGait == 1 ? "小跑/坎特" : "走步")));
+        GpConPrintf("  动作     跳=%s 坠落=%s 攀爬=%s 翻越=%s 游泳=%s 掩体=%s\n",
+                    YesNo(s.jumping), YesNo(s.falling), YesNo(s.climbing),
+                    YesNo(s.vaulting), YesNo(s.swimming), YesNo(s.inCover));
+        GpConPrintf("  慢动作   timescale=%0.2f %s   生命=%d/%d\n",
+                    s.timeScale, s.timeScale < 0.95f ? "(死眼/菜单慢动作)" : "",
+                    s.health, s.maxHealth);
         GpConPrintf("======================================\n");
 
         if (once) break;

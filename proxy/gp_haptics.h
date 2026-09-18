@@ -170,6 +170,9 @@ struct GpHapticsSettings {
     
 
     float rideTrotMaxSpeed;
+    
+
+    float ridePeriodCurve;
 
     int   rideBeats;          
     float rideBeatAccent;      

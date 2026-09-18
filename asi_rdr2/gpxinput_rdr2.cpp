@@ -332,6 +332,58 @@ void Tick(void) {
             g_state->horseGait = 0;
     }
 
+    
+    g_state->jumping  = (uint8_t)(rdr2_call1(N_IS_PED_JUMPING,  (uint64_t)(int64_t)ped) != 0);
+    g_state->falling  = (uint8_t)(rdr2_call1(N_IS_PED_FALLING,  (uint64_t)(int64_t)ped) != 0);
+    g_state->climbing = (uint8_t)(rdr2_call1(N_IS_PED_CLIMBING, (uint64_t)(int64_t)ped) != 0);
+    g_state->vaulting = (uint8_t)(rdr2_call1(N_IS_PED_VAULTING, (uint64_t)(int64_t)ped) != 0);
+    g_state->swimming = (uint8_t)(rdr2_call1(N_IS_PED_SWIMMING, (uint64_t)(int64_t)ped) != 0);
+    g_state->inCover  = (uint8_t)(rdr2_call3(N_IS_PED_IN_COVER, (uint64_t)(int64_t)ped, 0, 0) != 0);
+
+    
+    if (rdr2_call1(N_IS_PED_SPRINTING, (uint64_t)(int64_t)ped) != 0)
+        g_state->playerGait = 2;
+    else if (rdr2_call1(N_IS_PED_RUNNING, (uint64_t)(int64_t)ped) != 0)
+        g_state->playerGait = 1;
+    else
+        g_state->playerGait = 0;
+
+    g_state->health    = (int)rdr2_call1(N_GET_ENTITY_HEALTH, (uint64_t)(int64_t)ped);
+    g_state->maxHealth = (int)rdr2_call1(N_GET_PED_MAX_HEALTH, (uint64_t)(int64_t)ped);
+
+    
+    {
+        uint64_t bits = rdr2_call1(N_GET_ENTITY_SPEED, (uint64_t)(int64_t)ped);
+        float v; memcpy(&v, &bits, sizeof(v));
+        g_state->playerSpeed = (v == v && v < 1000.0f) ? v : 0.0f;
+    }
+
+    
+
+
+
+
+    {
+        static DWORD sLastWall = 0;
+        static int   sLastGame = 0;
+        static float sScale    = 1.0f;
+        int  gt = (int)rdr2_call0(N_GET_GAME_TIMER);
+        DWORD wt = GetTickCount();
+        if (sLastWall == 0) {
+            sLastWall = wt; sLastGame = gt;
+        } else if ((DWORD)(wt - sLastWall) >= 250) {
+            int  dg = gt - sLastGame;
+            DWORD dw = wt - sLastWall;
+            if (dg >= 0 && dw > 0) {
+                float r = (float)dg / (float)dw;
+                if (r > 4.0f) r = 4.0f;
+                sScale = sScale * 0.5f + r * 0.5f;   
+            }
+            sLastWall = wt; sLastGame = gt;
+        }
+        g_state->timeScale = sScale;
+    }
+
     g_state->horseSpeed  = horseSpeed;
             g_state->playerSpeed = 0.0f;
             g_state->mountHash   = 0;

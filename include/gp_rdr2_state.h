@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 #define GPRDR2_MAGIC   0x52533231u   
-#define GPRDR2_VERSION 3u
+#define GPRDR2_VERSION 4u
 #define GPRDR2_NAME    L"Local\\GpRdr2State_v1"
 
 
@@ -67,6 +67,27 @@ typedef struct GpRdr2State {
 
 
     uint8_t  horseGait;
+
+    
+
+
+
+    uint8_t  jumping;         
+    uint8_t  falling;         
+    uint8_t  climbing;        
+    uint8_t  vaulting;        
+    uint8_t  swimming;        
+    uint8_t  inCover;         
+    uint8_t  playerGait;      
+    uint8_t  pad1;
+
+    
+
+
+    float    timeScale;
+
+    int      health;          
+    int      maxHealth;       
 
     
     float    horseSpeed;      
