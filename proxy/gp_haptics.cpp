@@ -1089,7 +1089,12 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
         if (prof && (prof->aimTrig > 0.0f || prof->aimBody > 0.0f)) {
             
 
-            if (cs->aimStart == 0) cs->aimStart = now;
+            
+
+
+
+            DWORD origin = cs->ltDown ? cs->ltDownTick : now;
+            if (cs->aimStart != origin) cs->aimStart = origin;
             
 
             float ramp = 1.0f;

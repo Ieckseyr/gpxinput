@@ -154,7 +154,10 @@ void RunAim(void) {
     int aimActiveTicks = 0;
     for (DWORD t = 0; t <= 65000; t += kStepMs) {
         st.tickMs = 1000 + t;
-        GpOnPadInput(0, 1000 + t, 200, 0);          
+        
+
+        BYTE lt = (t >= 35000 && t < 38000) ? 0 : 200;
+        GpOnPadInput(0, 1000 + t, lt, 0);
         GpOnGameState(0, 1000 + t, TRUE, &st);
 
         GpHapticsOut o = {0, 0, 0, 0};

@@ -19,11 +19,12 @@ ARTIFACTS = {
     "xinput9_1_0.dll": os.path.join(ROOT, "build", "proxy", "xinput9_1_0", "xinput9_1_0.dll"),
     "xinput1_4.dll":   os.path.join(ROOT, "build", "proxy", "xinput1_4",   "xinput1_4.dll"),
     "xinput1_3.dll":   os.path.join(ROOT, "build", "proxy", "xinput1_3",   "xinput1_3.dll"),
+    "gpxinput_rdr2.asi": os.path.join(ROOT, "build", "bin", "gpxinput_rdr2.asi"),
 }
 
 # 白名单
-ALLOW = ["README.md", "gpxinput.ini", "mod.json",
-         "xinput9_1_0.dll", "xinput1_4.dll", "xinput1_3.dll"]
+ALLOW = ["README.md", "gpxinput.ini", "mod.json", "震动调参速查.md",
+         "xinput9_1_0.dll", "xinput1_4.dll", "xinput1_3.dll", "gpxinput_rdr2.asi"]
 
 
 def main():
@@ -45,8 +46,13 @@ def main():
 
     for old in os.listdir(DIST):
         if old.startswith("gpxinput_rdr2_haptics_v") and old.endswith(".zip"):
-            os.remove(os.path.join(DIST, old))
-            print("删除旧包 " + old)
+            try:
+                os.remove(os.path.join(DIST, old))
+                print("删除旧包 " + old)
+            except OSError:
+                # 旧包被资源管理器/解压工具占着是常事，删不掉就留着：
+                # 它是上一个版本，不影响这次打包，没必要让打包失败。
+                print("旧包被占用，跳过删除 " + old)
 
     zip_path = os.path.join(DIST, name + ".zip")
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
