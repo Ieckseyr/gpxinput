@@ -311,7 +311,10 @@ void Tick(void) {
             g_state->onFoot    = (uint8_t)(rdr2_call1(N_IS_PED_ON_FOOT, (uint64_t)(int64_t)ped) != 0);
             g_state->onMount   = (uint8_t)(mount != 0);
             g_state->inVehicle = (uint8_t)(rdr2_call2(N_IS_PED_IN_ANY_VEHICLE, (uint64_t)(int64_t)ped, 0) != 0);
-            g_state->menuActive = (uint8_t)(rdr2_call0(N_IS_PAUSE_MENU_ACTIVE) != 0);
+            
+
+
+            g_state->menuActive = (uint8_t)(rdr2_call1(N_IS_PLAYER_CONTROL_ON, 0) == 0);
             
 
 
@@ -381,10 +384,14 @@ void Tick(void) {
                 
 
 
-                Log("诊断：持械=%u 瞄准=%u 开枪=%u 装弹=%u 步行=%u 骑马=%u 车内=%u "
-                    "弹匣(总量)=%d 弹匣(弹夹)=%d",
+                int pauseMenu = (int)rdr2_call0(N_IS_PAUSE_MENU_ACTIVE);
+                int hudHidden = (int)rdr2_call0(N_IS_HUD_HIDDEN);
+                int controlOn = (int)rdr2_call1(N_IS_PLAYER_CONTROL_ON, 0);
+                Log("诊断：持械=%u 瞄准=%u 开枪=%u 装弹=%u 骑马=%u 菜单=%u "
+                    "弹匣(总量)=%d 弹匣(弹夹)=%d ｜ 菜单候选: 暂停菜单native=%d HUD隐藏=%d 有控制权=%d",
                     g_state->armed, g_state->aiming, g_state->shooting, g_state->reloading,
-                    g_state->onFoot, g_state->onMount, g_state->inVehicle, ammo, g_ammoClip);
+                    g_state->onMount, g_state->menuActive, ammo, g_ammoClip,
+                    pauseMenu, hudHidden, controlOn);
             }
 
         } __except (g_excCode = GetExceptionCode(), EXCEPTION_EXECUTE_HANDLER) {

@@ -76,6 +76,8 @@ struct CtrlState {
     BOOL  onMount;
     float horseSpeed;
     DWORD rideNextTick;
+    int   rideBeat;
+    int   rideBeats;
     BOOL  rideLogged;     
 
     
@@ -257,7 +259,9 @@ void GpDefaultHapticsSettings(GpHapticsSettings* s) {
     s->rideEnable       = TRUE;
     s->ridePeakThresh   = 0.10f;
     s->rideSpeedLow     = 1.0f;
-    s->rideCurve        = 1.3f;
+    s->rideCurve        = 1.6f;
+    s->rideBeats        = 4;
+    s->rideBeatAccent   = 0.6f;
     s->rideSpeedHigh    = 9.0f;
     s->rideGain         = 0.9f;
     s->rideTrigGain     = 0.35f;
@@ -278,6 +282,7 @@ void GpDefaultHapticsSettings(GpHapticsSettings* s) {
     s->aimRampGain     = 0.80f;  
     s->tickGain        = 0.35f;  
     s->tickEnvMs       = 45;
+    s->ltPressEnable   = FALSE;
     s->ltPressGain     = 0.55f;  
     s->ltPressEnvMs    = 90;
     s->drawGain        = 0.55f;  
@@ -341,6 +346,10 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
         g_s.rideSpeedHigh = g_s.rideSpeedLow + 0.5f;
     if (g_s.rideCurve < 0.5f) g_s.rideCurve = 0.5f;
     if (g_s.rideCurve > 4.0f) g_s.rideCurve = 4.0f;
+    if (g_s.rideBeats < 1) g_s.rideBeats = 1;
+    if (g_s.rideBeats > 8) g_s.rideBeats = 8;
+    if (g_s.rideBeatAccent < 0.0f) g_s.rideBeatAccent = 0.0f;
+    if (g_s.rideBeatAccent > 1.0f) g_s.rideBeatAccent = 1.0f;
 
     if (g_s.aimTriggerLevel < 0.05f) g_s.aimTriggerLevel = 0.05f;
     if (g_s.aimTriggerLevel > 0.9f) g_s.aimTriggerLevel = 0.9f;
@@ -561,7 +570,8 @@ void GpOnPadInput(uint32_t controller, DWORD now, BYTE leftTrigger, BYTE rightTr
     if (ltNow && !cs->ltDown) {
         cs->ltDown = TRUE;
         cs->ltDownTick = now;
-        FireAux(cs, now, g_s.ltPressGain, g_s.ltPressEnvMs, 1);
+        if (g_s.ltPressEnable)
+            FireAux(cs, now, g_s.ltPressGain, g_s.ltPressEnvMs, 1);
         GP_LOG_DEBUG("haptics: LT 按下 -> 反馈");
     } else if (!ltNow && cs->ltDown) {
         cs->ltDown = FALSE;
@@ -760,10 +770,20 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
             cs->rideAmp   = powf(k, g_s.rideCurve);   
             cs->rideUntil = now + 400;           
 
-            g_ridePeriod[controller] = period;
+            
+
+
+            int beats = g_s.rideBeats > 0 ? g_s.rideBeats : 1;
+            DWORD beatMs = period / (DWORD)beats;
+            if (beatMs < 45) beatMs = 45;
+
+            cs->rideBeats = beats;
+            g_ridePeriod[controller] = beatMs;
+
             if (cs->rideNextTick == 0 || now >= cs->rideNextTick) {
-                cs->rideNextTick = now + period;
+                cs->rideNextTick = now + beatMs;
                 cs->lastPeakTick = now;          
+                cs->rideBeat = (cs->rideBeat + 1) % beats;
             }
         } else {
             cs->rideNextTick = 0;
@@ -781,7 +801,12 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
 
             
 
-            float amp = Clamp01(cs->rideAmp * g_s.rideGain) * env;
+            
+
+            float accent = (cs->rideBeats > 0 && cs->rideBeat != 0)
+                           ? g_s.rideBeatAccent : 1.0f;
+
+            float amp = Clamp01(cs->rideAmp * g_s.rideGain) * env * accent;
             addBodyL += amp * 255.0f * 0.5f;
             addBodyR += amp * 255.0f * 0.5f;
             addTrigL += amp * g_s.rideTrigGain * 255.0f;
@@ -822,18 +847,19 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
                 ramp = 1.0f + t * g_s.aimRampGain;
             }
 
-            float w = ramp;
-            if (g_s.aimBreathHz > 0.01f && prof->aimWobble > 0.0f) {
-                
+            
 
+
+            float breath = 1.0f;
+            if (g_s.aimBreathHz > 0.01f && prof->aimWobble > 0.0f) {
                 float secs = (float)now / 1000.0f;
-                w *= 1.0f - prof->aimWobble * 0.5f *
-                            (1.0f - cosf(6.2831853f * g_s.aimBreathHz * secs));
+                breath = 1.0f - prof->aimWobble * 0.5f *
+                                (1.0f - cosf(6.2831853f * g_s.aimBreathHz * secs));
             }
-            addTrigL += prof->aimTrig * 255.0f * w;
-            addTrigR += prof->aimTrig * 255.0f * w;
-            addBodyL += prof->aimBody * 255.0f * w;
-            addBodyR += prof->aimBody * 255.0f * w;
+            addTrigL += prof->aimTrig * 255.0f * ramp;
+            addTrigR += prof->aimTrig * 255.0f * ramp;
+            addBodyL += prof->aimBody * 255.0f * ramp * breath;
+            addBodyR += prof->aimBody * 255.0f * ramp * breath;
         }
     } else {
         

@@ -131,6 +131,47 @@ void RunRide(void) {
     GpConPrintf("\n");
 }
 
+
+
+
+
+void RunAim(void) {
+    GpResetHaptics();
+    GpConPrintf("\n==== 瞄准（手枪，LT 按住 3 秒）====\n");
+    GpConPrintf("  t(ms)   出LT  出RT   出L   出R   （期望：扳机稳定 ~15，握把低频起伏）\n");
+
+    GpRdr2State st;
+    memset(&st, 0, sizeof(st));
+    st.magic       = GPRDR2_MAGIC;
+    st.version     = GPRDR2_VERSION;
+    st.weaponHash  = 0x5B78B8DD;
+    st.weaponGroup = 0x18D5FA97;     
+    st.armed       = 1;
+    st.aiming      = 1;              
+    st.onFoot      = 1;
+
+    int ltMin = 999, ltMax = 0, bodyMin = 999, bodyMax = 0;
+    for (DWORD t = 0; t <= 3000; t += kStepMs) {
+        st.tickMs = 1000 + t;
+        GpOnPadInput(0, 1000 + t, 200, 0);          
+        GpOnGameState(0, 1000 + t, TRUE, &st);
+
+        GpHapticsOut o = {0, 0, 0, 0};
+        GpTickHaptics(0, 1000 + t, FALSE, 0, 0, 0, 0, &o);
+
+        if ((int)o.leftTrigger < ltMin) ltMin = o.leftTrigger;
+        if ((int)o.leftTrigger > ltMax) ltMax = o.leftTrigger;
+        if ((int)o.leftMotor   < bodyMin) bodyMin = o.leftMotor;
+        if ((int)o.leftMotor   > bodyMax) bodyMax = o.leftMotor;
+
+        if ((t % 250) == 0)
+            GpConPrintf("  %5u   %4u  %4u  %4u  %4u\n", t, o.leftTrigger,
+                        o.rightTrigger, o.leftMotor, o.rightMotor);
+    }
+    GpConPrintf("  ---- 扳机范围 %d~%d（越窄越「稳」），握把范围 %d~%d（应当有起伏）\n\n",
+                ltMin, ltMax, bodyMin, bodyMax);
+}
+
 }  
 
 int main(int argc, char** argv) {
@@ -178,6 +219,9 @@ int main(int argc, char** argv) {
 
     if (which[0] == 'a' || which[0] == 's')
         RunLine("开枪接管（游戏本体 L=R=120 同时在震）", 0, 100, 210, 60, 700, 90, 300, 120, 120);
+
+    
+    if (which[0] == 'a' || which[0] == 'm') RunAim();
 
     
     if (which[0] == 'a' || which[0] == 'r') RunRide();

@@ -115,6 +115,11 @@ struct GpHapticsSettings {
     float rideCurve;
 
     
+
+    int   rideBeats;
+    float rideBeatAccent;      
+
+    
     
 
     float trigToBody;
@@ -150,6 +155,10 @@ struct GpHapticsSettings {
 
     
 
+
+
+
+    BOOL  ltPressEnable;
     float ltPressGain;
     int   ltPressEnvMs;
 

@@ -284,6 +284,8 @@ void GpConfigLoad(GpProxyConfig* cfg) {
         h.rideSpeedLow     = ReadFloat(ini, L"Haptics", L"RideSpeedLow", h.rideSpeedLow);
         h.rideSpeedHigh    = ReadFloat(ini, L"Haptics", L"RideSpeedHigh", h.rideSpeedHigh);
         h.rideCurve        = ReadFloat(ini, L"Haptics", L"RideCurve", h.rideCurve);
+        h.rideBeats        = ReadInt(ini, L"Haptics", L"RideBeats", h.rideBeats);
+        h.rideBeatAccent   = ReadFloat(ini, L"Haptics", L"RideBeatAccent", h.rideBeatAccent);
 
         h.rideEnable       = ReadBool(ini, L"Haptics", L"RideEnable", h.rideEnable);
         h.ridePeakThresh   = ReadFloat(ini, L"Haptics", L"RidePeakThresh", h.ridePeakThresh);
@@ -307,6 +309,7 @@ void GpConfigLoad(GpProxyConfig* cfg) {
         h.tickEnvMs       = ReadInt(ini, L"Haptics", L"TickEnvMs", h.tickEnvMs);
         h.drawGain        = ReadFloat(ini, L"Haptics", L"DrawGain", h.drawGain);
         h.drawEnvMs       = ReadInt(ini, L"Haptics", L"DrawEnvMs", h.drawEnvMs);
+        h.ltPressEnable   = ReadBool(ini, L"Haptics", L"LtPressEnable", h.ltPressEnable);
         h.ltPressGain     = ReadFloat(ini, L"Haptics", L"LtPressGain", h.ltPressGain);
         h.ltPressEnvMs    = ReadInt(ini, L"Haptics", L"LtPressEnvMs", h.ltPressEnvMs);
 
