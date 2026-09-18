@@ -183,6 +183,16 @@ target("gp_trigtest")
 
 
 
+target("gp_state_view")
+    set_kind("binary")
+    add_files("tools/gp_state_view/gp_state_view.cpp")
+    add_includedirs("include")
+    set_targetdir("$(builddir)/tools")
+
+
+
+
+
 
 target("hgi_probe")
     set_kind("binary")

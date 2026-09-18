@@ -76,6 +76,18 @@ int main(int argc, char** argv) {
            cfg.haptics.useGameState ? "开" : "关",
            cfg.haptics.trigToBody);
 
+    
+
+
+    if (cfg.haptics.weaponCount > 0) {
+        printf("武器档 %d 套:\n", cfg.haptics.weaponCount);
+        for (int i = 0; i < cfg.haptics.weaponCount; ++i) {
+            const GpWeaponProfile& w = cfg.haptics.weapon[i];
+            printf("  %-9s 组=0x%08X  强度=%.2f 时长=%dms 体感=%.2f\n",
+                   w.name, w.hash, w.shotGain, w.shotEnvMs, w.shotBodyKick);
+        }
+    }
+
     GpApplyHapticsSettings(cfg.haptics);
 
     const char* which = (argc > 1) ? argv[1] : "all";

@@ -7,6 +7,25 @@
 
 namespace {
 
+
+const char* GroupText(unsigned h) {
+    switch (h) {
+    case 0x18D5FA97u: return "Pistol";
+    case 0xBE5B8969u: return "Revolver";
+    case 0xDC8FB3E9u: return "Repeater";
+    case 0x39D5C192u: return "Rifle";
+    case 0x33431399u: return "Shotgun";
+    case 0xB7BBD827u: return "Sniper";
+    case 0xB5FD67CDu: return "Bow";
+    case 0xD49321D4u: return "Melee";
+    case 0x5C4C5883u: return "Thrown";
+    case 0x126210C3u: return "Lasso";
+    case 0:           return "空手";
+    default:          return "未知";
+    }
+}
+
+
 volatile LONG g_stop = 0;
 
 HANDLE g_out = INVALID_HANDLE_VALUE;   
@@ -241,8 +260,8 @@ void Render(const GpMonBlock* blk, DWORD now, bool interactive) {
 
         
 
-        snprintf(line, sizeof(line), " 手柄 %u   武器组=0x%08X  瞄准=%s  持械=%s  菜单=%s  状态=%s",
-                 c, mc.weaponGroup,
+        snprintf(line, sizeof(line), " 手柄 %u   武器=%-9s 0x%08X  瞄准=%s 持械=%s 菜单=%s 状态=%s",
+                 c, GroupText(mc.weaponGroup), mc.weaponGroup,
                  mc.aiming ? "是" : "否",
                  mc.armed ? "是" : "否",
                  mc.menuActive ? "是" : "否",

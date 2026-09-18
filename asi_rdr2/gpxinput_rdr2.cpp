@@ -85,6 +85,24 @@ uint32_t CurrentWeapon(int ped) {
 }
 
 
+
+const char* GroupName(uint32_t h) {
+    switch (h) {
+    case GPRDR2_GRP_PISTOL:   return "Pistol";
+    case GPRDR2_GRP_REVOLVER: return "Revolver";
+    case GPRDR2_GRP_REPEATER: return "Repeater";
+    case GPRDR2_GRP_RIFLE:    return "Rifle";
+    case GPRDR2_GRP_SHOTGUN:  return "Shotgun";
+    case GPRDR2_GRP_SNIPER:   return "Sniper";
+    case GPRDR2_GRP_BOW:      return "Bow";
+    case GPRDR2_GRP_MELEE:    return "Melee";
+    case GPRDR2_GRP_THROWN:   return "Thrown";
+    case GPRDR2_GRP_LASSO:    return "Lasso";
+    case 0:                   return "空手/无";
+    default:                  return "未知组";
+    }
+}
+
 void Tick(void) {
     if (InterlockedCompareExchange(&g_disabled, 1, 1) == 1) {
         sh::scriptWait(500);
@@ -159,9 +177,42 @@ void Tick(void) {
     ++g_bootFrames;
     if (g_bootFrames == 120) {
         
-        Log("状态样本：武器=0x%08X 组=0x%08X 弹匣=%d 瞄准=%u 持械=%u 菜单=%u 骑马=%u",
-            weapon, group, ammo, g_state->aiming, g_state->armed,
+        Log("状态样本：武器=0x%08X 组=0x%08X(%s) 弹匣=%d 瞄准=%u 持械=%u 菜单=%u 骑马=%u",
+            weapon, group, GroupName(group), ammo, g_state->aiming, g_state->armed,
             g_state->menuActive, g_state->onMount);
+    }
+
+    
+
+
+
+
+    {
+        static uint32_t lastWeapon = 0xFFFFFFFFu, lastGroup = 0xFFFFFFFFu;
+        static uint8_t  lastFlags  = 0xFF;
+
+        uint8_t flags = (uint8_t)((g_state->aiming    ? 1 : 0) |
+                                  (g_state->armed     ? 2 : 0) |
+                                  (g_state->onMount   ? 4 : 0) |
+                                  (g_state->menuActive? 8 : 0) |
+                                  (g_state->reloading ? 16 : 0) |
+                                  (g_state->onFoot    ? 32 : 0));
+
+        if (weapon != lastWeapon) {
+            lastWeapon = weapon;
+            Log("换武器：0x%08X（组 %s）", weapon, GroupName(group));
+        }
+        if (group != lastGroup) {
+            lastGroup = group;
+            Log("换武器组：0x%08X（%s）", group, GroupName(group));
+        }
+        if (flags != lastFlags) {
+            lastFlags = flags;
+            Log("动作：瞄准=%s 持械=%s 骑马=%s 菜单=%s 装弹=%s 步行=%s",
+                g_state->aiming ? "是" : "否", g_state->armed ? "是" : "否",
+                g_state->onMount ? "是" : "否", g_state->menuActive ? "是" : "否",
+                g_state->reloading ? "是" : "否", g_state->onFoot ? "是" : "否");
+        }
     }
 
     sh::scriptWait(0);              

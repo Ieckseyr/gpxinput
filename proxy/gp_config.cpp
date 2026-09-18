@@ -29,6 +29,25 @@ int ReadInt(const wchar_t* ini, const wchar_t* section, const wchar_t* key, int 
 
 
 
+
+
+
+
+uint32_t ReadU32(const wchar_t* ini, const wchar_t* section, const wchar_t* key, uint32_t def) {
+    if (!ini || !ini[0]) return def;
+
+    wchar_t buf[64] = {0};
+    GetPrivateProfileStringW(section, key, L"", buf, 64, ini);
+    if (!buf[0]) return def;
+
+    wchar_t* end = nullptr;
+    unsigned long v = wcstoul(buf, &end, 0);   
+    if (end == buf) return def;
+    return (uint32_t)v;                        
+}
+
+
+
 int ReadLogLevel(const wchar_t* ini, const wchar_t* section, const wchar_t* key, int def) {
     if (!ini || !ini[0]) return def;
 
@@ -263,7 +282,7 @@ void GpConfigLoad(GpProxyConfig* cfg) {
 
             
 
-            p.hash         = (uint32_t)ReadInt(ini, sec, L"Hash", (int)p.hash);
+            p.hash         = ReadU32(ini, sec, L"Hash", p.hash);
             p.shotGain     = ReadFloat(ini, sec, L"ShotGain", p.shotGain);
             p.shotEnvMs    = ReadInt(ini, sec, L"ShotEnvMs", p.shotEnvMs);
             p.shotBodyKick = ReadFloat(ini, sec, L"ShotBodyKick", p.shotBodyKick);
