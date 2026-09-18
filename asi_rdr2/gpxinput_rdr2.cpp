@@ -14,6 +14,7 @@ namespace {
 volatile LONG g_step    = 0;
 BOOL          g_faulted = FALSE;
 volatile LONG g_frames  = 0;   
+volatile LONG g_ammoFaults = 0;   
 unsigned long g_excCode = 0;
 
 BOOL g_tickSeen      = FALSE;
@@ -114,6 +115,35 @@ const char* GroupName(uint32_t h) {
     }
 }
 
+
+
+
+
+
+
+
+
+BOOL ReadAmmo(int ped, uint32_t weapon, int* out) {
+    if (g_ammoFaults >= 3) return FALSE;
+
+    BOOL ok = TRUE;
+    __try {
+        *out = (int)rdr2_call3(N_GET_AMMO_IN_CLIP, (uint64_t)(int64_t)ped,
+                               (uint64_t)weapon, 0);
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        ok = FALSE;
+    }
+    if (ok) return TRUE;
+
+    LONG n = InterlockedIncrement(&g_ammoFaults);
+    if (n <= 3) {
+        Log("弹匣 native 调用异常（第 %ld 次）—— 本次跳过；连续 3 次后停用该项", n);
+    } else {
+        Log("弹匣 native 已停用：开枪判定退回 shooting 上升沿");
+    }
+    return FALSE;
+}
+
 void Tick(void) {
     
 
@@ -178,7 +208,7 @@ void Tick(void) {
                 g_step = 3;
                 group = (uint32_t)rdr2_call1(N_GET_WEAPONTYPE_GROUP, weapon);
                 g_step = 4;
-                ammo  = (int)rdr2_call2(N_GET_AMMO_IN_CLIP, (uint64_t)(int64_t)ped, weapon);
+                ReadAmmo(ped, weapon, &ammo);
             }
             g_step = 5;
             uint32_t sinceShot = (uint32_t)rdr2_call1(N_TIME_SINCE_PED_LAST_SHOT, (uint64_t)(int64_t)ped);
@@ -275,8 +305,8 @@ void Tick(void) {
 
             if ((++g_frames % 300) == 0) {
                 uint32_t f = (uint32_t)(g_frames / 300);
-                Log("存活：已跑 %u00 帧（ped=%d 武器=0x%08X 组=0x%08X）",
-                    f, ped, weapon, group);
+                Log("存活：已跑 %u00 帧（ped=%d 武器=0x%08X 组=0x%08X 弹匣=%d）",
+                    f, ped, weapon, group, ammo);
             }
 
         } __except (g_excCode = GetExceptionCode(), EXCEPTION_EXECUTE_HANDLER) {
