@@ -320,7 +320,19 @@ void Tick(void) {
 
         g_state->armed      = (uint8_t)(weapon != 0 && weapon != 0xA2719263u);
 
-            g_state->horseSpeed  = horseSpeed;
+            
+
+    g_state->horseGait = 255;
+    if (mount != 0) {
+        if (rdr2_call1(N_IS_PED_SPRINTING, (uint64_t)(int64_t)mount) != 0)
+            g_state->horseGait = 2;
+        else if (rdr2_call1(N_IS_PED_RUNNING, (uint64_t)(int64_t)mount) != 0)
+            g_state->horseGait = 1;
+        else
+            g_state->horseGait = 0;
+    }
+
+    g_state->horseSpeed  = horseSpeed;
             g_state->playerSpeed = 0.0f;
             g_state->mountHash   = 0;
             g_state->playerPed   = (uint32_t)ped;

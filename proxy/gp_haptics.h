@@ -161,7 +161,17 @@ struct GpHapticsSettings {
 
     float rideFadeMs;
 
-    int   rideBeats;
+    
+
+    int   rideBeatsWalk;
+    int   rideBeatsTrot;
+    int   rideBeatsCanter;
+    int   rideBeatsGallop;
+    
+
+    float rideTrotMaxSpeed;
+
+    int   rideBeats;          
     float rideBeatAccent;      
 
     

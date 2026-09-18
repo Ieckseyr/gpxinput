@@ -75,7 +75,7 @@ void RunLine(const char* title, int isLT, DWORD pressAt, BYTE depth, DWORD holdM
 void RunRide(void) {
     GpResetHaptics();
     PrintHeader("骑乘辅助（马速 0 -> 12）");
-    GpConPrintf("  每半秒一段马速，下面给出该段的峰值（体感主导 + 轻量同步到扳机）\n");
+    GpConPrintf("  按步态分段（走步/小跑/坎特/疾驰），给出峰值与每拍间隔\n");
 
     GpRdr2State st;
     memset(&st, 0, sizeof(st));
@@ -93,8 +93,12 @@ void RunRide(void) {
     DWORD gaps[32];
     int   gapCount = 0;
 
-    for (DWORD t = 0; t <= 4000; t += kStepMs) {
-        float speed = (float)((double)t / 4000.0 * 12.0);
+    for (DWORD t = 0; t <= 8000; t += kStepMs) {
+        float speed;
+        if (t < 2000)       { speed = 2.0f;  st.horseGait = 0; }   
+        else if (t < 4000)  { speed = 5.0f;  st.horseGait = 1; }   
+        else if (t < 6000)  { speed = 8.0f;  st.horseGait = 1; }   
+        else                { speed = 12.0f; st.horseGait = 2; }   
         st.horseSpeed = speed;
         st.tickMs     = 1000 + t;
         GpOnGameState(0, 1000 + t, TRUE, &st);
@@ -103,7 +107,7 @@ void RunRide(void) {
         GpTickHaptics(0, 1000 + t, FALSE, 0, 0, 0, 0, &o);
 
         int body = o.rightMotor;
-        if (body > 12 && lastBody <= 12) {
+        if (body > 4 && lastBody <= 4) {
             ++pulses;
             if (prevPulse && gapCount < 32) gaps[gapCount++] = t - prevPulse;
             prevPulse = t;

@@ -80,6 +80,7 @@ struct CtrlState {
     BOOL  aimActiveNow, bowActiveNow;       
     BOOL  stateSeenOnce;   
     BOOL  onMount;
+    uint8_t horseGait;   
     float horseSpeed;
     DWORD rideNextTick;
     float rideLevel;      
@@ -316,6 +317,11 @@ void GpDefaultHapticsSettings(GpHapticsSettings* s) {
     s->rideAmpMin       = 0.20f;   
     s->rideFadeMs       = 700.0f;
     s->rideBeats        = 4;
+    s->rideBeatsWalk    = 4;
+    s->rideBeatsTrot    = 2;
+    s->rideBeatsCanter  = 3;
+    s->rideBeatsGallop  = 4;
+    s->rideTrotMaxSpeed = 6.0f;
     s->rideBeatAccent   = 0.6f;
     s->rideSpeedHigh    = 9.0f;
     s->rideGain         = 0.9f;
@@ -420,6 +426,15 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
     if (g_s.rideFadeMs > 5000.0f) g_s.rideFadeMs = 5000.0f;
     if (g_s.rideBeats < 1) g_s.rideBeats = 1;
     if (g_s.rideBeats > 8) g_s.rideBeats = 8;
+    if (g_s.rideBeatsWalk < 1) g_s.rideBeatsWalk = 1;
+    if (g_s.rideBeatsTrot < 1) g_s.rideBeatsTrot = 1;
+    if (g_s.rideBeatsCanter < 1) g_s.rideBeatsCanter = 1;
+    if (g_s.rideBeatsGallop < 1) g_s.rideBeatsGallop = 1;
+    if (g_s.rideBeatsWalk > 8) g_s.rideBeatsWalk = 8;
+    if (g_s.rideBeatsTrot > 8) g_s.rideBeatsTrot = 8;
+    if (g_s.rideBeatsCanter > 8) g_s.rideBeatsCanter = 8;
+    if (g_s.rideBeatsGallop > 8) g_s.rideBeatsGallop = 8;
+    if (g_s.rideTrotMaxSpeed < 1.0f) g_s.rideTrotMaxSpeed = 1.0f;
     if (g_s.rideBeatAccent < 0.0f) g_s.rideBeatAccent = 0.0f;
     if (g_s.rideBeatAccent > 1.0f) g_s.rideBeatAccent = 1.0f;
 
@@ -727,6 +742,7 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
         cs->stateValid  = FALSE;
         cs->aiming      = FALSE;
         cs->onMount     = FALSE;
+        cs->horseGait   = 255;
         cs->horseSpeed  = 0.0f;
         cs->rideNextTick = 0;
         cs->stateGroup  = 0;
@@ -749,6 +765,7 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
 
     cs->stateSeenOnce = TRUE;
     cs->onMount    = st->onMount != 0;
+    cs->horseGait  = st->horseGait;
     cs->horseSpeed = st->horseSpeed;
 
     
@@ -1016,7 +1033,18 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
                                    (g_s.rideMinPeriodMs - g_s.rideMaxPeriodMs) * k);
             if (period < 120) period = 120;
 
-            int beats = g_s.rideBeats > 0 ? g_s.rideBeats : 1;
+            
+
+            int beats;
+            switch (cs->horseGait) {
+            case 0:  beats = g_s.rideBeatsWalk;   break;   
+            case 2:  beats = g_s.rideBeatsGallop; break;   
+            case 1:  beats = (sp < g_s.rideTrotMaxSpeed) ? g_s.rideBeatsTrot
+                                                         : g_s.rideBeatsCanter;
+                     break;
+            default: beats = g_s.rideBeats;       break;   
+            }
+            if (beats < 1) beats = 1;
             DWORD beatMs = period / (DWORD)beats;
             if (beatMs < 45) beatMs = 45;
 
