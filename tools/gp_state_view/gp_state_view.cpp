@@ -122,7 +122,14 @@ int main(int argc, char** argv) {
         GpConPrintf("--------------------------------------\n");
         GpConPrintf("  武器组   0x%08X  %s\n", s.weaponGroup, GroupName(s.weaponGroup));
         GpConPrintf("  武器     0x%08X\n", s.weaponHash);
-        GpConPrintf("  弹匣     %u 发    距上次开枪 %ums\n", s.ammoInClip, s.timeSinceShot);
+        
+
+        if (s.timeSinceShot > 3600000u) {
+            GpConPrintf("  弹匣     %u 发    距上次开枪 从未\n", s.ammoInClip);
+        } else {
+            GpConPrintf("  弹匣     %u 发    距上次开枪 %ums\n",
+                        s.ammoInClip, s.timeSinceShot);
+        }
         GpConPrintf("--------------------------------------\n");
         GpConPrintf("  动作     开枪=%s  瞄准=%s  装弹=%s  持械=%s\n",
                YesNo(s.shooting), YesNo(s.aiming), YesNo(s.reloading), YesNo(s.armed));

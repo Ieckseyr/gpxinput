@@ -108,136 +108,145 @@ const char* GroupName(uint32_t h) {
 }
 
 void Tick(void) {
-    if (InterlockedCompareExchange(&g_disabled, 1, 1) == 1) {
-        sh::scriptWait(500);
-        return;
-    }
-
-    
-
-    if (!g_tickSeen) {
-        g_tickSeen = TRUE;
-        Log("脚本线程已启动（Tick 开始被调用）");
-    }
-
-    int ped = (int)rdr2_call0(N_PLAYER_PED_ID);
-
-    
-
-    if (!g_checked && ped != 0) {
-        g_checked = TRUE;
-        Log("自检通过：playerPed=%d，开始发布游戏状态", ped);
-    }
-
     
 
 
 
 
-    if (ped == 0) {
-        if (!g_outsideWorld) {
-            g_outsideWorld = TRUE;
-            Log("玩家 ped=0（主菜单/加载中）—— 进世界后开始发布状态");
+
+
+    for (;;) {
+        if (InterlockedCompareExchange(&g_disabled, 1, 1) == 1) {
+            sh::scriptWait(500);
+            continue;
         }
-        sh::scriptWait(0);
-        return;
-    }
-    if (g_outsideWorld) {
-        g_outsideWorld = FALSE;
-        Log("进入世界：ped=%d", ped);
-    }
 
-    uint32_t weapon    = CurrentWeapon(ped);
-    uint32_t group     = (uint32_t)rdr2_call1(N_GET_WEAPONTYPE_GROUP, weapon);
-    int      ammo      = (int)rdr2_call2(N_GET_AMMO_IN_CLIP, (uint64_t)(int64_t)ped, weapon);
-    uint32_t sinceShot = (uint32_t)rdr2_call1(N_TIME_SINCE_PED_LAST_SHOT, (uint64_t)(int64_t)ped);
-    int      mount     = (int)rdr2_call1(N_GET_MOUNT, (uint64_t)(int64_t)ped);
-
-    float horseSpeed = 0.0f;
-    if (mount != 0) {
         
-        uint64_t bits = rdr2_call1(N_GET_ENTITY_SPEED, (uint64_t)(int64_t)mount);
-        float v;
-        memcpy(&v, &bits, sizeof(v));
-        if (v == v && v < 1000.0f) horseSpeed = v;   
-    }
 
-    
-    g_state->seq++;                 
-    MemoryBarrier();
+        if (!g_tickSeen) {
+            g_tickSeen = TRUE;
+            Log("脚本线程已启动（Tick 开始被调用）");
+        }
 
-    g_state->magic         = GPRDR2_MAGIC;
-    g_state->version       = GPRDR2_VERSION;
-    g_state->tickMs        = GetTickCount();
-    g_state->frame         = ++g_frame;
-    g_state->writerPid     = GetCurrentProcessId();
+        int ped = (int)rdr2_call0(N_PLAYER_PED_ID);
 
-    g_state->weaponHash    = weapon;
-    g_state->weaponGroup   = group;
-    g_state->ammoInClip    = ammo;
-    g_state->timeSinceShot = sinceShot;
-
-    g_state->shooting  = (uint8_t)(rdr2_call1(N_IS_PED_SHOOTING, (uint64_t)(int64_t)ped) != 0);
-    
-
-    g_state->aiming    = (uint8_t)(rdr2_call1(N_IS_PLAYER_FREE_AIMING, 0) != 0);
-    g_state->reloading = (uint8_t)(rdr2_call1(N_IS_PED_RELOADING, (uint64_t)(int64_t)ped) != 0);
-    g_state->onFoot    = (uint8_t)(rdr2_call1(N_IS_PED_ON_FOOT, (uint64_t)(int64_t)ped) != 0);
-    g_state->onMount   = (uint8_t)(mount != 0);
-    g_state->inVehicle = (uint8_t)(rdr2_call2(N_IS_PED_IN_ANY_VEHICLE, (uint64_t)(int64_t)ped, 0) != 0);
-    g_state->menuActive = (uint8_t)(rdr2_call0(N_IS_PAUSE_MENU_ACTIVE) != 0);
-    g_state->armed      = (uint8_t)(rdr2_call2(N_IS_PED_ARMED, (uint64_t)(int64_t)ped, 1) != 0);
-
-    g_state->horseSpeed  = horseSpeed;
-    g_state->playerSpeed = 0.0f;
-    g_state->mountHash   = 0;
-    g_state->playerPed   = (uint32_t)ped;
-
-    MemoryBarrier();
-    g_state->seq++;                 
-
-    ++g_bootFrames;
-    if (g_bootFrames == 120) {
         
-        Log("状态样本：武器=0x%08X 组=0x%08X(%s) 弹匣=%d 瞄准=%u 持械=%u 菜单=%u 骑马=%u",
-            weapon, group, GroupName(group), ammo, g_state->aiming, g_state->armed,
-            g_state->menuActive, g_state->onMount);
+
+        if (!g_checked && ped != 0) {
+            g_checked = TRUE;
+            Log("自检通过：playerPed=%d，开始发布游戏状态", ped);
+        }
+
+        
+
+
+
+
+        if (ped == 0) {
+            if (!g_outsideWorld) {
+                g_outsideWorld = TRUE;
+                Log("玩家 ped=0（主菜单/加载中）—— 进世界后开始发布状态");
+            }
+            sh::scriptWait(0);
+            continue;
+        }
+        if (g_outsideWorld) {
+            g_outsideWorld = FALSE;
+            Log("进入世界：ped=%d", ped);
+        }
+
+        uint32_t weapon    = CurrentWeapon(ped);
+        uint32_t group     = (uint32_t)rdr2_call1(N_GET_WEAPONTYPE_GROUP, weapon);
+        int      ammo      = (int)rdr2_call2(N_GET_AMMO_IN_CLIP, (uint64_t)(int64_t)ped, weapon);
+        uint32_t sinceShot = (uint32_t)rdr2_call1(N_TIME_SINCE_PED_LAST_SHOT, (uint64_t)(int64_t)ped);
+        int      mount     = (int)rdr2_call1(N_GET_MOUNT, (uint64_t)(int64_t)ped);
+
+        float horseSpeed = 0.0f;
+        if (mount != 0) {
+            
+            uint64_t bits = rdr2_call1(N_GET_ENTITY_SPEED, (uint64_t)(int64_t)mount);
+            float v;
+            memcpy(&v, &bits, sizeof(v));
+            if (v == v && v < 1000.0f) horseSpeed = v;   
+        }
+
+        
+        g_state->seq++;                 
+        MemoryBarrier();
+
+        g_state->magic         = GPRDR2_MAGIC;
+        g_state->version       = GPRDR2_VERSION;
+        g_state->tickMs        = GetTickCount();
+        g_state->frame         = ++g_frame;
+        g_state->writerPid     = GetCurrentProcessId();
+
+        g_state->weaponHash    = weapon;
+        g_state->weaponGroup   = group;
+        g_state->ammoInClip    = ammo;
+        g_state->timeSinceShot = sinceShot;
+
+        g_state->shooting  = (uint8_t)(rdr2_call1(N_IS_PED_SHOOTING, (uint64_t)(int64_t)ped) != 0);
+        
+
+        g_state->aiming    = (uint8_t)(rdr2_call1(N_IS_PLAYER_FREE_AIMING, 0) != 0);
+        g_state->reloading = (uint8_t)(rdr2_call1(N_IS_PED_RELOADING, (uint64_t)(int64_t)ped) != 0);
+        g_state->onFoot    = (uint8_t)(rdr2_call1(N_IS_PED_ON_FOOT, (uint64_t)(int64_t)ped) != 0);
+        g_state->onMount   = (uint8_t)(mount != 0);
+        g_state->inVehicle = (uint8_t)(rdr2_call2(N_IS_PED_IN_ANY_VEHICLE, (uint64_t)(int64_t)ped, 0) != 0);
+        g_state->menuActive = (uint8_t)(rdr2_call0(N_IS_PAUSE_MENU_ACTIVE) != 0);
+        g_state->armed      = (uint8_t)(rdr2_call2(N_IS_PED_ARMED, (uint64_t)(int64_t)ped, 1) != 0);
+
+        g_state->horseSpeed  = horseSpeed;
+        g_state->playerSpeed = 0.0f;
+        g_state->mountHash   = 0;
+        g_state->playerPed   = (uint32_t)ped;
+
+        MemoryBarrier();
+        g_state->seq++;                 
+
+        ++g_bootFrames;
+        if (g_bootFrames == 120) {
+            
+            Log("状态样本：武器=0x%08X 组=0x%08X(%s) 弹匣=%d 瞄准=%u 持械=%u 菜单=%u 骑马=%u",
+                weapon, group, GroupName(group), ammo, g_state->aiming, g_state->armed,
+                g_state->menuActive, g_state->onMount);
+        }
+
+        
+
+
+
+
+        {
+            static uint32_t lastWeapon = 0xFFFFFFFFu, lastGroup = 0xFFFFFFFFu;
+            static uint8_t  lastFlags  = 0xFF;
+
+            uint8_t flags = (uint8_t)((g_state->aiming    ? 1 : 0) |
+                                      (g_state->armed     ? 2 : 0) |
+                                      (g_state->onMount   ? 4 : 0) |
+                                      (g_state->menuActive? 8 : 0) |
+                                      (g_state->reloading ? 16 : 0) |
+                                      (g_state->onFoot    ? 32 : 0));
+
+            if (weapon != lastWeapon) {
+                lastWeapon = weapon;
+                Log("换武器：0x%08X（组 %s）", weapon, GroupName(group));
+            }
+            if (group != lastGroup) {
+                lastGroup = group;
+                Log("换武器组：0x%08X（%s）", group, GroupName(group));
+            }
+            if (flags != lastFlags) {
+                lastFlags = flags;
+                Log("动作：瞄准=%s 持械=%s 骑马=%s 菜单=%s 装弹=%s 步行=%s",
+                    g_state->aiming ? "是" : "否", g_state->armed ? "是" : "否",
+                    g_state->onMount ? "是" : "否", g_state->menuActive ? "是" : "否",
+                    g_state->reloading ? "是" : "否", g_state->onFoot ? "是" : "否");
+            }
+        }
+
+        sh::scriptWait(0);          
     }
-
-    
-
-
-
-
-    {
-        static uint32_t lastWeapon = 0xFFFFFFFFu, lastGroup = 0xFFFFFFFFu;
-        static uint8_t  lastFlags  = 0xFF;
-
-        uint8_t flags = (uint8_t)((g_state->aiming    ? 1 : 0) |
-                                  (g_state->armed     ? 2 : 0) |
-                                  (g_state->onMount   ? 4 : 0) |
-                                  (g_state->menuActive? 8 : 0) |
-                                  (g_state->reloading ? 16 : 0) |
-                                  (g_state->onFoot    ? 32 : 0));
-
-        if (weapon != lastWeapon) {
-            lastWeapon = weapon;
-            Log("换武器：0x%08X（组 %s）", weapon, GroupName(group));
-        }
-        if (group != lastGroup) {
-            lastGroup = group;
-            Log("换武器组：0x%08X（%s）", group, GroupName(group));
-        }
-        if (flags != lastFlags) {
-            lastFlags = flags;
-            Log("动作：瞄准=%s 持械=%s 骑马=%s 菜单=%s 装弹=%s 步行=%s",
-                g_state->aiming ? "是" : "否", g_state->armed ? "是" : "否",
-                g_state->onMount ? "是" : "否", g_state->menuActive ? "是" : "否",
-                g_state->reloading ? "是" : "否", g_state->onFoot ? "是" : "否");
-        }
-    }
-
-    sh::scriptWait(0);              
 }
 
 
