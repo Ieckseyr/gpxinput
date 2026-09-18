@@ -263,6 +263,8 @@ BOOL GpHapticsActive(uint32_t controller);
 
 
 typedef struct GpHapticsStatus {
+    uint8_t  aimActive;      
+    uint8_t  bowActive;      
     uint8_t  shotActive;
     uint16_t shotRemainMs;
     uint8_t  rideActive;

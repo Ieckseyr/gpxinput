@@ -76,7 +76,8 @@ struct CtrlState {
     DWORD rideUntil;
     
     BOOL  wasReloading;
-    DWORD bowDrawStart;       
+    DWORD bowDrawStart;
+    BOOL  aimActiveNow, bowActiveNow;       
     BOOL  stateSeenOnce;   
     BOOL  onMount;
     float horseSpeed;
@@ -862,6 +863,9 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
     CtrlState* cs = State(controller);
     if (!cs) return;
 
+    cs->aimActiveNow = FALSE;
+    cs->bowActiveNow = FALSE;
+
     float addBodyL = 0.0f, addBodyR = 0.0f, addTrigL = 0.0f, addTrigR = 0.0f;
 
     
@@ -917,6 +921,7 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
 
     if (g_s.bowDrawGain > 0.0f && cs->stateValid &&
         cs->stateGroup == GPRDR2_GRP_BOW && cs->padRT > 40) {
+        cs->bowActiveNow = TRUE;
         if (cs->bowDrawStart == 0) {
             cs->bowDrawStart = now;
             GP_LOG_DEBUG("haptics: 开始拉弓 -> 两侧扳机持续震动");
@@ -1062,6 +1067,7 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
                 breath = 1.0f - prof->aimWobble * 0.5f *
                                 (1.0f - cosf(6.2831853f * g_s.aimBreathHz * secs));
             }
+            cs->aimActiveNow = TRUE;
             addTrigL += prof->aimTrig * 255.0f * ramp;
             addTrigR += prof->aimTrig * 255.0f * ramp;
             addBodyL += prof->aimBody * 255.0f * ramp * breath;

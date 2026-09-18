@@ -239,13 +239,20 @@ void Render(const GpMonBlock* blk, DWORD now, bool interactive) {
             snprintf(t, sizeof(t), "骑乘[周期%ums 幅度%u] ", mc.ridePeriodMs, mc.rideAmp);
             strncat(synth, t, sizeof(synth) - strlen(synth) - 1);
         }
-        if (!mc.shotActive && !mc.rideActive) {
+        if (mc.aimActive) {
+            strncat(synth, "瞄准 ", sizeof(synth) - strlen(synth) - 1);
+        }
+        if (mc.bowActive) {
+            strncat(synth, "拉弓 ", sizeof(synth) - strlen(synth) - 1);
+        }
+        if (!mc.shotActive && !mc.rideActive && !mc.aimActive && !mc.bowActive) {
             strncat(synth, "无(输出全部来自游戏)", sizeof(synth) - strlen(synth) - 1);
         }
 
         BOOL outNonZero = mc.outLM || mc.outRM || mc.outLT || mc.outRT;
         BOOL gameFresh = mc.tickMs && (DWORD)(now - mc.tickMs) < 300;
-        BOOL stuckWarn = outNonZero && !mc.shotActive && !mc.rideActive && !gameFresh;
+        BOOL stuckWarn = outNonZero && !mc.shotActive && !mc.rideActive &&
+                         !mc.aimActive && !mc.bowActive && !gameFresh;
 
         if (compact) {
             snprintf(line, sizeof(line),

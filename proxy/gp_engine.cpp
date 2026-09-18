@@ -286,6 +286,8 @@ void MonitorPublish(uint32_t c, DWORD now, const MonSample* s) {
     m->menuActive   = st.menuActive;
     m->armed        = st.armed;
     m->weaponGroup  = st.weaponGroup;
+    m->aimActive    = st.aimActive;
+    m->bowActive    = st.bowActive;
     m->shotActive   = st.shotActive;
     m->shotRemainMs = st.shotRemainMs;
     m->rideActive   = st.rideActive;

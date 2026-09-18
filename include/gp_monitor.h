@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 #define GPMON_MAGIC   0x4D4F5031u   
-#define GPMON_VERSION 3u
+#define GPMON_VERSION 4u
 #define GPMON_MAX_CONTROLLERS 4u
 
 
@@ -31,6 +31,8 @@ typedef struct GpMonController {
     uint8_t  padLT,  padRT;                   
 
     
+    uint8_t  aimActive;       
+    uint8_t  bowActive;       
     uint8_t  shotActive;      
     uint16_t shotRemainMs;    
     uint8_t  rideActive;      
