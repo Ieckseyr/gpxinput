@@ -54,6 +54,7 @@ local proxy_sources = {
     "proxy/gp_engine.cpp",
     "proxy/gp_ipc_client.cpp",
     "proxy/gp_hid.cpp",
+    "proxy/gp_wgi.cpp",
     "proxy/gp_capture.cpp",
     "proxy/gp_haptics.cpp",
     "proxy/gp_gamestate.cpp",
@@ -75,7 +76,7 @@ local function add_proxy(name, def_file)
         add_links("libMinHook.x64")
 
 
-        add_syslinks("setupapi", "hid", "user32")
+        add_syslinks("setupapi", "hid", "user32", "runtimeobject")
 
 
         set_targetdir("$(builddir)/proxy/" .. name)
@@ -138,7 +139,7 @@ target("gpxinput_hook")
     add_includedirs("proxy", "minhook/include")
     add_linkdirs("minhook/lib")
     add_links("libMinHook.x64")
-    add_syslinks("setupapi", "hid", "user32")
+    add_syslinks("setupapi", "hid", "user32", "runtimeobject")
     set_targetdir("$(builddir)/bin")
     if is_mode("release") then
         set_symbols("hidden")
@@ -176,6 +177,17 @@ target("gp_trigtest")
     add_files("tools/gp_trigtest/gp_trigtest.cpp")
     add_includedirs("C:/Program Files (x86)/Windows Kits/10/Include/10.0.18362.0/cppwinrt")
     add_syslinks("windowsapp")
+    set_targetdir("$(builddir)/tools")
+
+
+
+
+
+
+target("hgi_probe")
+    set_kind("binary")
+    add_files("tools/hgi_probe/hgi_probe.cpp")
+    add_syslinks("runtimeobject")
     set_targetdir("$(builddir)/tools")
 
 

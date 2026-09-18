@@ -235,6 +235,10 @@ void GpDefaultHapticsSettings(GpHapticsSettings* s) {
     s->shotFromRumble   = FALSE;   
 
     s->shotRiseThresh   = 0.20f;
+    s->driveLeftMotor   = TRUE;
+    s->driveRightMotor  = TRUE;
+    s->driveLeftTrigger = TRUE;
+    s->driveRightTrigger= TRUE;
     s->shotGain         = 1.0f;
     s->shotEnvMs        = 90;
     s->shotRefractoryMs = 55;
@@ -354,6 +358,13 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
                 g_s.shotRiseThresh, g_s.shotGain, g_s.shotEnvMs, g_s.shotSide, g_s.shotBodyKick,
                 g_s.rideEnable ? "开" : "关", g_s.rideGain, g_s.rideTrigGain,
                 g_s.rideMinPeriodMs, g_s.rideMaxPeriodMs, g_s.trigToBody);
+
+    if (!g_s.driveLeftMotor || !g_s.driveRightMotor ||
+        !g_s.driveLeftTrigger || !g_s.driveRightTrigger) {
+        GP_LOG_INFO("haptics: 直通(我们不动) 左体感=%s 右体感=%s 左扳机=%s 右扳机=%s",
+                    g_s.driveLeftMotor   ? "否" : "是", g_s.driveRightMotor  ? "否" : "是",
+                    g_s.driveLeftTrigger ? "否" : "是", g_s.driveRightTrigger? "否" : "是");
+    }
 
     GP_LOG_INFO("haptics: 游戏状态=%s 武器档=%d 套 瞄准起伏=%.2fHz",
                 g_s.useGameState ? "采信" : "忽略", g_s.weaponCount, g_s.aimBreathHz);
@@ -788,10 +799,15 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
         }
     }
 
-    out->leftMotor    = ClampByte((float)out->leftMotor + addBodyL);
-    out->rightMotor   = ClampByte((float)out->rightMotor + addBodyR);
-    out->leftTrigger  = ClampByte((float)out->leftTrigger + addTrigL);
-    out->rightTrigger = ClampByte((float)out->rightTrigger + addTrigR);
+    
+    if (g_s.driveLeftMotor)
+        out->leftMotor    = ClampByte((float)out->leftMotor + addBodyL);
+    if (g_s.driveRightMotor)
+        out->rightMotor   = ClampByte((float)out->rightMotor + addBodyR);
+    if (g_s.driveLeftTrigger)
+        out->leftTrigger  = ClampByte((float)out->leftTrigger + addTrigL);
+    if (g_s.driveRightTrigger)
+        out->rightTrigger = ClampByte((float)out->rightTrigger + addTrigR);
 
     (void)hasGame;   
 }

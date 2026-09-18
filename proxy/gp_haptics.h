@@ -35,6 +35,20 @@ struct GpHapticsSettings {
     BOOL  enable;
 
     
+
+
+
+
+
+
+
+
+    BOOL  driveLeftMotor;      
+    BOOL  driveRightMotor;     
+    BOOL  driveLeftTrigger;    
+    BOOL  driveRightTrigger;   
+
+    
     
 
     BOOL  shotFromTrigger;

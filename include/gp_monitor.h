@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 #define GPMON_MAGIC   0x4D4F5031u   
-#define GPMON_VERSION 2u
+#define GPMON_VERSION 3u
 #define GPMON_MAX_CONTROLLERS 4u
 
 
@@ -60,6 +60,11 @@ typedef struct GpMonBlock {
     uint32_t writerPid;
     uint32_t mode;            
     uint32_t hidCount;        
+    
+
+
+
+    uint32_t outChannel;
     uint32_t reserved;
     GpMonController ctl[GPMON_MAX_CONTROLLERS];
 } GpMonBlock;

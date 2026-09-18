@@ -175,14 +175,24 @@ void Render(const GpMonBlock* blk, DWORD now, bool interactive) {
     if (interactive) CursorHome();
 
     PutLine("============ gpxinput 震动监视 ============");
-    snprintf(line, sizeof(line), " 模式=%s  HID=%u个  代理=%s  pid=%u",
-             modeName, blk->hidCount, alive ? "在线" : "不在线", blk->writerPid);
+    
+
+    const char* chName;
+    switch (blk->outChannel) {
+    case 1:  chName = "WinGamingInput(四电机)"; break;
+    case 2:  chName = "HID(四电机)";            break;
+    default: chName = "XInput(仅两马达)";       break;
+    }
+    snprintf(line, sizeof(line), " 模式=%s  通道=%s  HID=%u个  代理=%s  pid=%u",
+             modeName, chName, blk->hidCount, alive ? "在线" : "不在线", blk->writerPid);
     PutLine(line);
     snprintf(line, sizeof(line), " 数据年龄=%ums  重绘=%s  窗口=%dx%d",
              age, g_console ? "就地位" : "追加(非控制台)", g_width, g_height);
     PutLine(line);
-    if (blk->hidCount == 0) {
-        PutLine(" HID 无输出接口: 扳机电机发不出去, 合成内容折算到体感马达");
+    if (blk->outChannel == 0) {
+        PutLine(" 无四电机通道: 扳机内容折算到体感马达 (TrigToBody)");
+    } else {
+        PutLine(" 扳机可发: 合成出来的 LT/RT 会直接送到扳机电机");
     }
     PutLine("------------------------------------------");
 

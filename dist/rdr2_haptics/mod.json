@@ -2,7 +2,7 @@
   "manifestVersion": 1,
   "name": "gpxinput RDR2 震动增强",
   "id": "gpxinput.rdr2.haptics",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "releaseDate": "2026-09-18",
   "types": [
     "hook"
@@ -50,12 +50,12 @@
   ],
   "requirements": {
     "admin": {
-      "needed": "partial",
-      "why": "驱动扳机电机需要直写手柄的 9 字节 HID 报告；只有两个体感马达时不需要"
+      "needed": "no",
+      "why": "扳机默认走 Windows.Gaming.Input，不需要管理员。只有退到 HID 输出报告那条路时才需要（日志「输出通道=」会写明用的哪条）。"
     },
     "controller": {
       "impulseTriggers": "optional",
-      "why": "没有扳机通道的手柄，扳机内容会自动折算到同侧体感马达"
+      "why": "两条出口互相独立：Windows.Gaming.Input（默认，不需要管理员）与 HID 输出报告（需要管理员）。两条都不可用时扳机内容自动折算到同侧体感马达。"
     },
     "steamInput": "must-be-disabled",
     "fileIO": false,

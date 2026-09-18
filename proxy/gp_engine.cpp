@@ -2,6 +2,7 @@
 #include "gp_engine.h"
 #include "gp_ipc_client.h"
 #include "gp_hid.h"
+#include "gp_wgi.h"
 #include "gp_config.h"
 #include "gp_capture.h"
 #include "gp_haptics.h"
@@ -231,6 +232,11 @@ void MonitorShutdown(void) {
     if (g_monMapping) { CloseHandle(g_monMapping); g_monMapping = nullptr; }
 }
 
+
+int  FourMotorChannel(void);
+const char* ChannelName(int ch);
+BOOL SendOut(uint32_t controller, const GpFrame* f);
+
 void MonitorPublish(uint32_t c, DWORD now, const MonSample* s) {
     if (!g_mon || !s || c >= GPMON_MAX_CONTROLLERS) return;
 
@@ -276,6 +282,7 @@ void MonitorPublish(uint32_t c, DWORD now, const MonSample* s) {
     g_mon->writerPid  = GetCurrentProcessId();
     g_mon->mode       = (uint32_t)g_cfg.mode;
     g_mon->hidCount   = (uint32_t)gphid::Count();
+    g_mon->outChannel = (uint32_t)FourMotorChannel();
 }
 
 
@@ -395,6 +402,32 @@ bool AskProcessor(uint32_t controller, const GpFrame* in, GpFrame* out) {
 
 
 
+
+
+
+
+BOOL WgiAvailable(void) { return gpwgi::Count() > 0; }
+
+int FourMotorChannel(void) {
+    if (g_cfg.output == 1) return 0;                       
+    if (g_cfg.output == 2) return gphid::Count() > 0 ? 2 : 0;
+    if (g_cfg.output == 3) return WgiAvailable() ? 1 : 0;
+    if (WgiAvailable())    return 1;                       
+    if (gphid::Count() > 0) return 2;
+    return 0;
+}
+
+const char* ChannelName(int ch) {
+    switch (ch) {
+    case 1:  return "Windows.Gaming.Input(四电机)";
+    case 2:  return "HID 报告(四电机)";
+    default: return "XInput(只有两个马达)";
+    }
+}
+
+
+
+
 bool Emit(uint32_t controller, const GpFrame* f, BOOL preferHid) {
     if (preferHid && gphid::Count() > 0) {
         if (gphid::SendMapped((int)controller,
@@ -418,6 +451,20 @@ void MaybeSendXInput(uint32_t controller, const GpFrame* f) {
     vib.wRightMotorSpeed = FromRaw(f->rawRightMotor);
     fn(controller, &vib);
 }
+
+
+BOOL SendOut(uint32_t controller, const GpFrame* f) {
+    int ch = FourMotorChannel();
+    if (ch == 1) {
+        return gpwgi::Set(f->rawLeftMotor, f->rawRightMotor,
+                          g_cfg.triggers ? f->rawLeftTrigger  : 0,
+                          g_cfg.triggers ? f->rawRightTrigger : 0);
+    }
+    if (ch == 2 && Emit(controller, f, TRUE)) return TRUE;
+    MaybeSendXInput(controller, f);
+    return TRUE;
+}
+
 
 
 
@@ -448,6 +495,25 @@ void OutputLoop(void) {
         if (hz < 30) hz = 30;
         DWORD period = 1000 / hz;
         if (period == 0) period = 1;
+
+        
+
+        gpwgi::Tick();
+        {
+            static int lastCh = -1;
+            int ch = FourMotorChannel();
+            if (ch != lastCh) {
+                lastCh = ch;
+                if (ch == 0) {
+                    GP_LOG_INFO("engine: 输出通道=%s —— 扳机那两路发不出去，"
+                                "内容会折算到体感马达（TrigToBody=%.2f）",
+                                ChannelName(ch), (double)g_cfg.haptics.trigToBody);
+                } else {
+                    GP_LOG_INFO("engine: 输出通道=%s —— 四个电机全可控（含扳机）",
+                                ChannelName(ch));
+                }
+            }
+        }
 
         gpshm::BeatProducer();
 
@@ -513,10 +579,14 @@ void OutputLoop(void) {
 
 
 
-                    if (gphid::Count() == 0 && g_cfg.haptics.trigToBody > 0.0f) {
+                    if (FourMotorChannel() == 0 && g_cfg.haptics.trigToBody > 0.0f) {
                         float fold = g_cfg.haptics.trigToBody;
-                        float lm = (float)h.leftMotor  + (float)h.leftTrigger  * fold;
-                        float rm = (float)h.rightMotor + (float)h.rightTrigger * fold;
+                        
+
+                        float lm = (float)h.leftMotor;
+                        float rm = (float)h.rightMotor;
+                        if (g_cfg.haptics.driveLeftMotor)  lm += (float)h.leftTrigger  * fold;
+                        if (g_cfg.haptics.driveRightMotor) rm += (float)h.rightTrigger * fold;
                         h.leftMotor  = ClampToByte(lm);
                         h.rightMotor = ClampToByte(rm);
                     }
@@ -557,8 +627,7 @@ void OutputLoop(void) {
                         memset(&zero, 0, sizeof(zero));
                         zero.controller = (uint8_t)c;
                         zero.tickMs = now;
-                        if (gphid::Count() > 0) Emit(c, &zero, TRUE);
-                        else                     MaybeSendXInput(c, &zero);
+                        SendOut(c, &zero);
                         cs->lastSent = zero;
                         cs->lastSendTick = now;
                         InterlockedIncrement(&g_statSilenced);
@@ -605,14 +674,7 @@ void OutputLoop(void) {
                                  (DWORD)(now - cs->lastSendTick) >= kKeepAliveMs;
                 if (!changed && !keepAlive) continue;
 
-                if (gphid::Count() > 0) {
-                    if (Emit(c, &chosen, TRUE)) {
-                        cs->lastSent = chosen;
-                        cs->lastSendTick = now;
-                        cs->sent = TRUE;
-                    }
-                } else {
-                    MaybeSendXInput(c, &chosen);
+                if (SendOut(c, &chosen)) {
                     cs->lastSent = chosen;
                     cs->lastSendTick = now;
                     cs->sent = TRUE;
@@ -786,6 +848,13 @@ void Start(void) {
                           g_cfg.hidAnyGamepad);
     gphid::Init();
     GP_LOG_DEBUG("engine: HID 枚举完成，%d 个设备", gphid::Count());
+
+    
+
+    if (g_cfg.haptics.enable && g_cfg.mode != 2) {
+        GP_LOG_INFO("engine: 当前模式=%d，扳机需要 Mode=2（阻断替换）才有输出通道 —— "
+                    "其余模式只能驱动两个体感马达", g_cfg.mode);
+    }
 
     memset(g_ctrl, 0, sizeof(g_ctrl));
 
@@ -975,7 +1044,7 @@ DWORD OnSetState(DWORD controller, WORD left, WORD right, GpFnSetState downstrea
                       out.rawLeftMotor, out.rawRightMotor,
                       out.rawLeftTrigger, out.rawRightTrigger, &h);
 
-        if (gphid::Count() == 0 && g_cfg.haptics.trigToBody > 0.0f) {
+        if (FourMotorChannel() == 0 && g_cfg.haptics.trigToBody > 0.0f) {
             float fold = g_cfg.haptics.trigToBody;
             h.leftMotor  = ClampToByte((float)h.leftMotor  + (float)h.leftTrigger  * fold);
             h.rightMotor = ClampToByte((float)h.rightMotor + (float)h.rightTrigger * fold);
@@ -994,11 +1063,8 @@ DWORD OnSetState(DWORD controller, WORD left, WORD right, GpFnSetState downstrea
     
 
 
-    BOOL wantHid = (g_cfg.output == GP_OUT_HID) ||
-                   (g_cfg.output == GP_OUT_AUTO && g_cfg.triggers && gphid::Count() > 0);
-
-    if (wantHid && gphid::Count() > 0) {
-        if (Emit(controller, &out, TRUE)) {
+    if (FourMotorChannel() != 0) {
+        if (SendOut(controller, &out)) {
             BumpBlocked();
             return ERROR_SUCCESS;
         }
