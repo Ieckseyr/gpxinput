@@ -103,7 +103,7 @@ void RunRide(void) {
         GpTickHaptics(0, 1000 + t, FALSE, 0, 0, 0, 0, &o);
 
         int body = o.rightMotor;
-        if (body > 40 && lastBody <= 40) {
+        if (body > 12 && lastBody <= 12) {
             ++pulses;
             if (prevPulse && gapCount < 32) gaps[gapCount++] = t - prevPulse;
             prevPulse = t;
@@ -201,14 +201,28 @@ int main(int argc, char** argv) {
         }
     }
 
+    if (cfg.haptics.gunCount > 0) {
+        GpConPrintf("具体枪械档 %d 套（优先于武器组）：\n", cfg.haptics.gunCount);
+        for (int i = 0; i < cfg.haptics.gunCount && i < 6; ++i) {
+            const GpWeaponProfile& g = cfg.haptics.weapon[i];
+            const GpWeaponProfile& gg = cfg.haptics.gun[i];
+            GpConPrintf("  %-14s 0x%08X  强度=%.2f 时长=%dms 体感=%.2f\n",
+                        gg.name, gg.hash, gg.shotGain, gg.shotEnvMs, gg.shotBodyKick);
+            (void)g;
+        }
+    }
+
     GpApplyHapticsSettings(cfg.haptics);
 
     const char* which = (argc > 1) ? argv[1] : "all";
 
     
 
-    if (which[0] == 'a' || which[0] == 's')
+    if (which[0] == 'a' || which[0] == 's') {
+        GpConPrintf("  （注：这条测的是「扳机判据」。UseGameState=true 且状态从未上线时，\n"
+                    "    它被有意禁用 —— 想测扳机路径请把 ini 里 UseGameState 设为 false）\n");
         RunLine("开枪 (RT 扣到 210 保持 60ms)", 0, 100, 210, 60, 700, 90, 480);
+    }
 
     
     if (which[0] == 'a' || which[0] == 'l')

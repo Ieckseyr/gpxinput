@@ -9,7 +9,8 @@
 
 
 
-#define GP_WEAPON_SLOTS 8
+#define GP_WEAPON_SLOTS 8    
+#define GP_GUN_SLOTS   40    
 
 
 
@@ -118,8 +119,11 @@ struct GpHapticsSettings {
 
     
 
-    float rideAmpMin;
     float rideAmpMax;
+
+    
+
+    float rideFadeMs;
 
     int   rideBeats;
     float rideBeatAccent;      
@@ -173,8 +177,16 @@ struct GpHapticsSettings {
     float ltPressGain;
     int   ltPressEnvMs;
 
+    
+
+
+
+
+
     GpWeaponProfile weapon[GP_WEAPON_SLOTS];
     int             weaponCount;
+    GpWeaponProfile gun[GP_GUN_SLOTS];
+    int             gunCount;
 };
 
 

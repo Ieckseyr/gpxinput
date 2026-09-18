@@ -284,8 +284,8 @@ void GpConfigLoad(GpProxyConfig* cfg) {
         h.rideSpeedLow     = ReadFloat(ini, L"Haptics", L"RideSpeedLow", h.rideSpeedLow);
         h.rideSpeedHigh    = ReadFloat(ini, L"Haptics", L"RideSpeedHigh", h.rideSpeedHigh);
         h.rideCurve        = ReadFloat(ini, L"Haptics", L"RideCurve", h.rideCurve);
-        h.rideAmpMin       = ReadFloat(ini, L"Haptics", L"RideAmpMin", h.rideAmpMin);
         h.rideAmpMax       = ReadFloat(ini, L"Haptics", L"RideAmpMax", h.rideAmpMax);
+        h.rideFadeMs       = ReadFloat(ini, L"Haptics", L"RideFadeMs", h.rideFadeMs);
         h.rideBeats        = ReadInt(ini, L"Haptics", L"RideBeats", h.rideBeats);
         h.rideBeatAccent   = ReadFloat(ini, L"Haptics", L"RideBeatAccent", h.rideBeatAccent);
 
@@ -343,6 +343,33 @@ void GpConfigLoad(GpProxyConfig* cfg) {
                                     nullptr, nullptr);
             }
             if (p.hash != 0 || p.name[0]) h.weaponCount = i + 1;
+        }
+
+        
+
+
+
+        for (int i = 0; i < GP_GUN_SLOTS; ++i) {
+            wchar_t sec[24];
+            swprintf_s(sec, L"Gun%d", i);
+            GpWeaponProfile& p = h.gun[i];
+
+            p.hash         = ReadU32(ini, sec, L"Hash", p.hash);
+            if (p.hash == 0) continue;          
+            p.shotGain     = ReadFloat(ini, sec, L"ShotGain", p.shotGain);
+            p.shotEnvMs    = ReadInt(ini, sec, L"ShotEnvMs", p.shotEnvMs);
+            p.shotBodyKick = ReadFloat(ini, sec, L"ShotBodyKick", p.shotBodyKick);
+            p.aimTrig      = ReadFloat(ini, sec, L"AimTrig", p.aimTrig);
+            p.aimBody      = ReadFloat(ini, sec, L"AimBody", p.aimBody);
+            p.aimWobble    = ReadFloat(ini, sec, L"AimWobble", p.aimWobble);
+
+            wchar_t nm[32] = {0};
+            ReadString(ini, sec, L"Name", L"", nm, 32);
+            if (nm[0]) {
+                WideCharToMultiByte(CP_UTF8, 0, nm, -1, p.name, (int)sizeof(p.name),
+                                    nullptr, nullptr);
+            }
+            h.gunCount = i + 1;
         }
     }
 

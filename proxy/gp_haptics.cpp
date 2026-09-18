@@ -78,6 +78,8 @@ struct CtrlState {
     BOOL  onMount;
     float horseSpeed;
     DWORD rideNextTick;
+    float rideLevel;      
+    DWORD rideLastTick;
     int   rideBeat;
     int   rideBeats;
     BOOL  rideLogged;     
@@ -116,7 +118,16 @@ inline void UpdateBaseline(float* base, float value, float dtMs) {
 
 
 
-const GpWeaponProfile* FindProfile(uint32_t group) {
+
+
+
+
+
+const GpWeaponProfile* FindProfile(uint32_t group, uint32_t weapon) {
+    for (int i = 0; i < g_s.gunCount && i < GP_GUN_SLOTS; ++i) {
+        if (weapon != 0 && g_s.gun[i].hash != 0 && g_s.gun[i].hash == weapon)
+            return &g_s.gun[i];
+    }
     if (group == 0) return nullptr;
     for (int i = 0; i < g_s.weaponCount && i < GP_WEAPON_SLOTS; ++i) {
         if (g_s.weapon[i].hash != 0 && g_s.weapon[i].hash == group) return &g_s.weapon[i];
@@ -262,8 +273,8 @@ void GpDefaultHapticsSettings(GpHapticsSettings* s) {
     s->ridePeakThresh   = 0.10f;
     s->rideSpeedLow     = 1.0f;
     s->rideCurve        = 1.6f;
-    s->rideAmpMin       = 0.35f;
-    s->rideAmpMax       = 0.70f;
+    s->rideAmpMax       = 0.35f;   
+    s->rideFadeMs       = 700.0f;
     s->rideBeats        = 4;
     s->rideBeatAccent   = 0.6f;
     s->rideSpeedHigh    = 9.0f;
@@ -353,9 +364,10 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
         g_s.rideSpeedHigh = g_s.rideSpeedLow + 0.5f;
     if (g_s.rideCurve < 0.5f) g_s.rideCurve = 0.5f;
     if (g_s.rideCurve > 4.0f) g_s.rideCurve = 4.0f;
-    if (g_s.rideAmpMin < 0.0f) g_s.rideAmpMin = 0.0f;
+    if (g_s.rideAmpMax < 0.0f) g_s.rideAmpMax = 0.0f;
     if (g_s.rideAmpMax > 1.0f) g_s.rideAmpMax = 1.0f;
-    if (g_s.rideAmpMax < g_s.rideAmpMin) g_s.rideAmpMax = g_s.rideAmpMin;
+    if (g_s.rideFadeMs < 0.0f) g_s.rideFadeMs = 0.0f;
+    if (g_s.rideFadeMs > 5000.0f) g_s.rideFadeMs = 5000.0f;
     if (g_s.rideBeats < 1) g_s.rideBeats = 1;
     if (g_s.rideBeats > 8) g_s.rideBeats = 8;
     if (g_s.rideBeatAccent < 0.0f) g_s.rideBeatAccent = 0.0f;
@@ -377,6 +389,15 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
     if (g_s.aimBreathHz > 5.0f) g_s.aimBreathHz = 5.0f;
     if (g_s.weaponCount < 0) g_s.weaponCount = 0;
     if (g_s.weaponCount > GP_WEAPON_SLOTS) g_s.weaponCount = GP_WEAPON_SLOTS;
+    if (g_s.gunCount < 0) g_s.gunCount = 0;
+    if (g_s.gunCount > GP_GUN_SLOTS) g_s.gunCount = GP_GUN_SLOTS;
+    for (int i = 0; i < g_s.gunCount; ++i) {
+        if (g_s.gun[i].shotEnvMs < 10) g_s.gun[i].shotEnvMs = 10;
+        if (g_s.gun[i].shotEnvMs > 400) g_s.gun[i].shotEnvMs = 400;
+        if (g_s.gun[i].shotGain < 0.0f) g_s.gun[i].shotGain = 0.0f;
+        if (g_s.gun[i].shotGain > 4.0f) g_s.gun[i].shotGain = 4.0f;
+        g_s.gun[i].name[sizeof(g_s.gun[i].name) - 1] = 0;
+    }
     for (int i = 0; i < g_s.weaponCount; ++i) {
         if (g_s.weapon[i].shotEnvMs < 10) g_s.weapon[i].shotEnvMs = 10;
         if (g_s.weapon[i].shotEnvMs > 400) g_s.weapon[i].shotEnvMs = 400;
@@ -403,6 +424,12 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
                     g_s.driveLeftTrigger ? "否" : "是", g_s.driveRightTrigger? "否" : "是");
     }
 
+    GP_LOG_INFO("haptics: 具体枪械档=%d 套（优先于武器组）", g_s.gunCount);
+    for (int i = 0; i < g_s.gunCount; ++i) {
+        const GpWeaponProfile& g = g_s.gun[i];
+        GP_LOG_INFO("haptics:   枪%d %-28s 0x%08X 开枪(强度=%.2f 时长=%dms 体感=%.2f)",
+                    i, g.name, g.hash, g.shotGain, g.shotEnvMs, g.shotBodyKick);
+    }
     GP_LOG_INFO("haptics: 游戏状态=%s 武器档=%d 套 瞄准起伏=%.2fHz",
                 g_s.useGameState ? "采信" : "忽略", g_s.weaponCount, g_s.aimBreathHz);
     for (int i = 0; i < g_s.weaponCount; ++i) {
@@ -567,7 +594,7 @@ void GpOnPadInput(uint32_t controller, DWORD now, BYTE leftTrigger, BYTE rightTr
 
     if (!stateShot && g_s.shotFromTrigger && cs->trigArmed && rightTrigger >= hi &&
         sinceShot >= (DWORD)g_s.triggerRefractoryMs) {
-        const GpWeaponProfile* prof = FindProfile(cs->stateGroup);
+        const GpWeaponProfile* prof = FindProfile(cs->stateGroup, cs->lastWeapon);
         
         float amp = Clamp01((float)rightTrigger / 255.0f) * g_s.shotGain;
         FireShot(cs, now, amp, prof);
@@ -662,7 +689,7 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
 
 
 
-    const GpWeaponProfile* prof = FindProfile(st->weaponGroup);
+    const GpWeaponProfile* prof = FindProfile(st->weaponGroup, st->weaponHash);
     DWORD refr = (DWORD)g_s.triggerRefractoryMs;
 
     if (st->ammoInClip >= 0 && st->ammoInClip < cs->lastAmmo) {
@@ -785,25 +812,22 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
 
     if (g_s.rideEnable && g_s.useGameState && cs->stateValid && cs->onMount) {
         float sp = cs->horseSpeed;
-        if (sp > g_s.rideSpeedLow) {
+        float target = 0.0f;
+        BOOL  moving = (sp > g_s.rideSpeedLow);
+
+        if (moving) {
             float k = (sp - g_s.rideSpeedLow) / (g_s.rideSpeedHigh - g_s.rideSpeedLow);
             if (k < 0.0f) k = 0.0f;
             if (k > 1.0f) k = 1.0f;
 
+            
+
+            target = g_s.rideAmpMax * powf(k, g_s.rideCurve);
+
+            
             DWORD period = (DWORD)(g_s.rideMaxPeriodMs +
                                    (g_s.rideMinPeriodMs - g_s.rideMaxPeriodMs) * k);
             if (period < 120) period = 120;
-
-            
-
-            
-
-            cs->rideAmp   = g_s.rideAmpMin +
-                            (g_s.rideAmpMax - g_s.rideAmpMin) * powf(k, g_s.rideCurve);
-            cs->rideUntil = now + 400;           
-
-            
-
 
             int beats = g_s.rideBeats > 0 ? g_s.rideBeats : 1;
             DWORD beatMs = period / (DWORD)beats;
@@ -819,8 +843,28 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
             }
         } else {
             cs->rideNextTick = 0;
-            cs->rideAmp      = 0.0f;
         }
+
+        
+
+
+        float dt = (float)(now - cs->rideLastTick);
+        if (cs->rideLastTick == 0 || dt > 100.0f) dt = 100.0f;
+        cs->rideLastTick = now;
+
+        if (g_s.rideFadeMs > 0.5f) {
+            float a = dt / g_s.rideFadeMs;
+            if (a > 1.0f) a = 1.0f;
+            cs->rideLevel += (target - cs->rideLevel) * a;
+        } else {
+            cs->rideLevel = target;
+        }
+        
+
+        if (target <= 0.0f && cs->rideLevel < 0.002f) cs->rideLevel = 0.0f;
+
+        cs->rideAmp   = cs->rideLevel;
+        if (cs->rideLevel > 0.0f) cs->rideUntil = now + 400;   
     }
 
     
@@ -867,7 +911,7 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
                      (cs->aiming ||
                       (cs->armed && cs->ltDown && holdMs >= (DWORD)g_s.aimHoldMs));
     if (g_s.useGameState && aimingNow) {
-        const GpWeaponProfile* prof = FindProfile(cs->stateGroup);
+        const GpWeaponProfile* prof = FindProfile(cs->stateGroup, cs->lastWeapon);
         if (prof && (prof->aimTrig > 0.0f || prof->aimBody > 0.0f)) {
             
 
