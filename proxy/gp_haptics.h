@@ -85,6 +85,8 @@ struct GpHapticsSettings {
     float rideShotBoost;
 
     
+    
+
     BOOL  rideEnable;
     float ridePeakThresh;      
     float rideGain;            
@@ -93,6 +95,12 @@ struct GpHapticsSettings {
     int   rideMaxPeriodMs;     
     float ridePeriodTol;       
     int   rideHoldMs;          
+
+    
+
+
+    float rideSpeedLow;
+    float rideSpeedHigh;
 
     
     

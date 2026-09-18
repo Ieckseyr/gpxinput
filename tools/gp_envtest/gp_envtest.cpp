@@ -68,6 +68,60 @@ void RunLine(const char* title, int isLT, DWORD pressAt, BYTE depth, DWORD holdM
     GpConPrintf("\n");
 }
 
+
+
+
+
+void RunRide(void) {
+    GpResetHaptics();
+    PrintHeader("骑乘辅助（马速 0 -> 12）");
+    printf("  t(ms)  马速   出R  出RT   （体感主导 + 轻量同步到扳机）\n");
+
+    GpRdr2State st;
+    memset(&st, 0, sizeof(st));
+    st.magic      = GPRDR2_MAGIC;
+    st.version    = GPRDR2_VERSION;
+    st.weaponHash = 0x5B78B8DD;      
+    st.weaponGroup = 0x18D5FA97;
+    st.armed      = 1;
+    st.onMount    = 1;
+    st.onFoot     = 0;
+
+    int pulses = 0, lastBody = 0;
+    DWORD prevPulse = 0;
+    DWORD gaps[32];
+    int   gapCount = 0;
+
+    for (DWORD t = 0; t <= 4000; t += kStepMs) {
+        float speed = (float)((double)t / 4000.0 * 12.0);
+        st.horseSpeed = speed;
+        st.tickMs     = 1000 + t;
+        GpOnGameState(0, 1000 + t, TRUE, &st);
+
+        GpHapticsOut o = {0, 0, 0, 0};
+        GpTickHaptics(0, 1000 + t, FALSE, 0, 0, 0, 0, &o);
+
+        int body = o.rightMotor;
+        if (body > 40 && lastBody <= 40) {
+            ++pulses;
+            if (prevPulse && gapCount < 32) gaps[gapCount++] = t - prevPulse;
+            prevPulse = t;
+        }
+        lastBody = body;
+
+        if ((t % 500) == 0)
+            printf("  %5u  %5.1f  %4u  %4u\n", t, speed, o.rightMotor,
+                   o.rightTrigger);
+    }
+    printf("  ---- 4 秒内 %d 次踏地脉冲\n", pulses);
+    if (gapCount) {
+        printf("  ---- 相邻间隔(ms):");
+        for (int i = 0; i < gapCount && i < 12; ++i) printf(" %u", gaps[i]);
+        printf("\n");
+    }
+    printf("\n");
+}
+
 }  
 
 int main(int argc, char** argv) {
@@ -109,6 +163,9 @@ int main(int argc, char** argv) {
     
     if (which[0] == 'a' || which[0] == 'l')
         RunLine("LT 按下 (按到 200 保持 500ms)", 1, 100, 200, 500, 700, 90, 400);
+
+    
+    if (which[0] == 'a' || which[0] == 'r') RunRide();
 
     return 0;
 }

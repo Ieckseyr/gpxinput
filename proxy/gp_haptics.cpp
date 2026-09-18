@@ -72,6 +72,10 @@ struct CtrlState {
     DWORD lastPeakTick;
     float rideAmp;
     DWORD rideUntil;
+    
+    BOOL  onMount;
+    float horseSpeed;
+    DWORD rideNextTick;
     BOOL  rideLogged;     
 
     
@@ -251,6 +255,8 @@ void GpDefaultHapticsSettings(GpHapticsSettings* s) {
 
     s->rideEnable       = TRUE;
     s->ridePeakThresh   = 0.10f;
+    s->rideSpeedLow     = 1.0f;
+    s->rideSpeedHigh    = 9.0f;
     s->rideGain         = 0.9f;
     s->rideTrigGain     = 0.35f;
     s->rideMinPeriodMs  = 200;
@@ -328,6 +334,9 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
     if (g_s.rideMaxPeriodMs <= g_s.rideMinPeriodMs) g_s.rideMaxPeriodMs = g_s.rideMinPeriodMs + 100;
     if (g_s.rideHoldMs < 0) g_s.rideHoldMs = 0;
     if (g_s.rideHoldMs > 10000) g_s.rideHoldMs = 10000;
+    if (g_s.rideSpeedLow < 0.0f) g_s.rideSpeedLow = 0.0f;
+    if (g_s.rideSpeedHigh <= g_s.rideSpeedLow + 0.5f)
+        g_s.rideSpeedHigh = g_s.rideSpeedLow + 0.5f;
 
     if (g_s.aimTriggerLevel < 0.05f) g_s.aimTriggerLevel = 0.05f;
     if (g_s.aimTriggerLevel > 0.9f) g_s.aimTriggerLevel = 0.9f;
@@ -351,13 +360,14 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
     }
 
     GP_LOG_INFO("haptics: 自合成%s 开枪(扳机判据=%s 扣下阈值=%.2f / 波形判据=%s 阈值=%.2f 增益=%.2f 时长=%dms 侧=%d 体感=%.2f) "
-                "骑乘(%s 增益=%.2f 扳机=%.2f 周期=%d~%dms) 无HID折算=%.2f",
+                "骑乘(%s 增益=%.2f 扳机=%.2f 周期=%d~%dms 马速=%.1f~%.1f) 无HID折算=%.2f",
                 g_s.enable ? "开启" : "关闭",
                 g_s.shotFromTrigger ? "开" : "关", g_s.triggerPressThresh,
                 g_s.shotFromRumble ? "开" : "关",
                 g_s.shotRiseThresh, g_s.shotGain, g_s.shotEnvMs, g_s.shotSide, g_s.shotBodyKick,
                 g_s.rideEnable ? "开" : "关", g_s.rideGain, g_s.rideTrigGain,
-                g_s.rideMinPeriodMs, g_s.rideMaxPeriodMs, g_s.trigToBody);
+                g_s.rideMinPeriodMs, g_s.rideMaxPeriodMs,
+                (double)g_s.rideSpeedLow, (double)g_s.rideSpeedHigh, g_s.trigToBody);
 
     if (!g_s.driveLeftMotor || !g_s.driveRightMotor ||
         !g_s.driveLeftTrigger || !g_s.driveRightTrigger) {
@@ -452,7 +462,11 @@ void GpOnGameFrame(uint32_t controller, DWORD tick, BYTE bodyL, BYTE bodyR) {
     BOOL triggerBusy = (cs->padRT > 40) ||
                        (cs->lastShotTick != 0 && (now - cs->lastShotTick) < 300);
 
-    if (g_s.rideEnable && !triggerBusy) {
+    
+
+    BOOL stateRide = (g_s.useGameState && cs->stateValid && cs->onMount);
+
+    if (g_s.rideEnable && !triggerBusy && !stateRide) {
         float peak = ((float)bodyL + (float)bodyR) / 2.0f / 255.0f;
         float prevPeak = ((float)cs->prevL + (float)cs->prevR) / 2.0f / 255.0f;
         
@@ -561,6 +575,9 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
 
         cs->stateValid  = FALSE;
         cs->aiming      = FALSE;
+        cs->onMount     = FALSE;
+        cs->horseSpeed  = 0.0f;
+        cs->rideNextTick = 0;
         cs->stateGroup  = 0;
         cs->lastWeapon  = 0;
         cs->lastAmmo    = 0;
@@ -570,6 +587,8 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
 
     cs->menuActive = st->menuActive != 0;
     cs->armed      = st->armed != 0;
+    cs->onMount    = st->onMount != 0;
+    cs->horseSpeed = st->horseSpeed;
 
     
 
@@ -712,6 +731,36 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
             addBodyR += env255 * cs->shotBodyKick;
         } else {
             cs->shotActive = FALSE;
+        }
+    }
+
+    
+
+
+
+
+    if (g_s.rideEnable && g_s.useGameState && cs->stateValid && cs->onMount) {
+        float sp = cs->horseSpeed;
+        if (sp > g_s.rideSpeedLow) {
+            float k = (sp - g_s.rideSpeedLow) / (g_s.rideSpeedHigh - g_s.rideSpeedLow);
+            if (k < 0.0f) k = 0.0f;
+            if (k > 1.0f) k = 1.0f;
+
+            DWORD period = (DWORD)(g_s.rideMaxPeriodMs +
+                                   (g_s.rideMinPeriodMs - g_s.rideMaxPeriodMs) * k);
+            if (period < 120) period = 120;
+
+            cs->rideAmp   = 0.45f + 0.55f * k;   
+            cs->rideUntil = now + 400;           
+
+            g_ridePeriod[controller] = period;
+            if (cs->rideNextTick == 0 || now >= cs->rideNextTick) {
+                cs->rideNextTick = now + period;
+                cs->lastPeakTick = now;          
+            }
+        } else {
+            cs->rideNextTick = 0;
+            cs->rideAmp      = 0.0f;
         }
     }
 
