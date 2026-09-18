@@ -4,7 +4,6 @@
 
 - **类型**：hook（XInput 反向代理 DLL）
 - **目标**：Red Dead Redemption 2 PC，1.0.1491.50（R* / Epic / Steam 版通用）
-- **依赖**：无。不需要 ScriptHookRDR2、不需要 .NET、不需要常驻后台进程
 - **原理**：不注入、不改游戏代码、不改游戏数据。代理冒充 `xinput9_1_0.dll`
   被游戏加载，完整转发到系统原件，只在震动调用上做加工
 
