@@ -243,6 +243,7 @@ void GpDefaultHapticsSettings(GpHapticsSettings* s) {
     s->driveRightMotor  = TRUE;
     s->driveLeftTrigger = TRUE;
     s->driveRightTrigger= TRUE;
+    s->shotReplaceGame  = TRUE;
     s->shotGain         = 1.0f;
     s->shotEnvMs        = 90;
     s->shotRefractoryMs = 55;
@@ -359,9 +360,9 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
         g_s.weapon[i].name[sizeof(g_s.weapon[i].name) - 1] = 0;
     }
 
-    GP_LOG_INFO("haptics: 自合成%s 开枪(扳机判据=%s 扣下阈值=%.2f / 波形判据=%s 阈值=%.2f 增益=%.2f 时长=%dms 侧=%d 体感=%.2f) "
+    GP_LOG_INFO("haptics: 自合成%s 开枪(接管=%s 扳机判据=%s 扣下阈值=%.2f / 波形判据=%s 阈值=%.2f 增益=%.2f 时长=%dms 侧=%d 体感=%.2f) "
                 "骑乘(%s 增益=%.2f 扳机=%.2f 周期=%d~%dms 马速=%.1f~%.1f) 无HID折算=%.2f",
-                g_s.enable ? "开启" : "关闭",
+                g_s.enable ? "开启" : "关闭", g_s.shotReplaceGame ? "是" : "否",
                 g_s.shotFromTrigger ? "开" : "关", g_s.triggerPressThresh,
                 g_s.shotFromRumble ? "开" : "关",
                 g_s.shotRiseThresh, g_s.shotGain, g_s.shotEnvMs, g_s.shotSide, g_s.shotBodyKick,
@@ -849,6 +850,21 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
     }
 
     
+    
+
+
+
+
+    BOOL takeOver = (cs->shotActive && g_s.shotReplaceGame);
+
+    if (takeOver) {
+        if (g_s.driveLeftMotor)    out->leftMotor    = ClampByte(addBodyL);
+        if (g_s.driveRightMotor)   out->rightMotor   = ClampByte(addBodyR);
+        if (g_s.driveLeftTrigger)  out->leftTrigger  = ClampByte(addTrigL);
+        if (g_s.driveRightTrigger) out->rightTrigger = ClampByte(addTrigR);
+        return;
+    }
+
     if (g_s.driveLeftMotor)
         out->leftMotor    = ClampByte((float)out->leftMotor + addBodyL);
     if (g_s.driveRightMotor)

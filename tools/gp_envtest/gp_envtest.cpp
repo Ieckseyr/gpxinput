@@ -28,7 +28,7 @@ void PrintRow(DWORD t, int ltIn, int rtIn, const GpHapticsOut& o) {
 
 
 void RunLine(const char* title, int isLT, DWORD pressAt, BYTE depth, DWORD holdMs,
-             DWORD totalMs, DWORD from, DWORD to) {
+             DWORD totalMs, DWORD from, DWORD to, BYTE gameL = 0, BYTE gameR = 0) {
     GpResetHaptics();
     PrintHeader(title);
 
@@ -44,7 +44,7 @@ void RunLine(const char* title, int isLT, DWORD pressAt, BYTE depth, DWORD holdM
         GpOnPadInput(0, 1000 + t, (BYTE)lt, (BYTE)rt);
 
         GpHapticsOut o = {0, 0, 0, 0};
-        GpTickHaptics(0, 1000 + t, FALSE, 0, 0, 0, 0, &o);
+        GpTickHaptics(0, 1000 + t, gameL || gameR, gameL, gameR, 0, 0, &o);
 
         if (o.leftTrigger  > peakLT) peakLT = o.leftTrigger;
         if (o.rightTrigger > peakRT) peakRT = o.rightTrigger;
@@ -163,6 +163,12 @@ int main(int argc, char** argv) {
     
     if (which[0] == 'a' || which[0] == 'l')
         RunLine("LT 按下 (按到 200 保持 500ms)", 1, 100, 200, 500, 700, 90, 400);
+
+    
+
+
+    if (which[0] == 'a' || which[0] == 's')
+        RunLine("开枪接管（游戏本体 L=R=120 同时在震）", 0, 100, 210, 60, 700, 90, 300, 120, 120);
 
     
     if (which[0] == 'a' || which[0] == 'r') RunRide();

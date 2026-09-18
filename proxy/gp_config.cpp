@@ -268,6 +268,7 @@ void GpConfigLoad(GpProxyConfig* cfg) {
         h.driveRightMotor  = ReadBool(ini, L"Haptics", L"DriveRightMotor", h.driveRightMotor);
         h.driveLeftTrigger = ReadBool(ini, L"Haptics", L"DriveLeftTrigger", h.driveLeftTrigger);
         h.driveRightTrigger= ReadBool(ini, L"Haptics", L"DriveRightTrigger", h.driveRightTrigger);
+        h.shotReplaceGame = ReadBool(ini, L"Haptics", L"ShotReplaceGame", h.shotReplaceGame);
         h.shotFromTrigger  = ReadBool(ini, L"Haptics", L"ShotFromTrigger", h.shotFromTrigger);
         h.triggerPressThresh = ReadFloat(ini, L"Haptics", L"TriggerPressThresh", h.triggerPressThresh);
         h.triggerReleaseHyst = ReadFloat(ini, L"Haptics", L"TriggerReleaseHyst", h.triggerReleaseHyst);

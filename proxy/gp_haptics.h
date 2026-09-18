@@ -51,6 +51,12 @@ struct GpHapticsSettings {
     
     
 
+
+
+    BOOL  shotReplaceGame;
+
+    
+
     BOOL  shotFromTrigger;
     float triggerPressThresh;  
     
