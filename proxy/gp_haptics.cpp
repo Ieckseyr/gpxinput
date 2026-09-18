@@ -36,6 +36,8 @@ struct CtrlState {
     
     DWORD shotStart;
     float shotAmp;
+    float shotTrigL, shotTrigR, shotBodyL, shotBodyR;
+    int   shotAttackMs;
     BOOL  shotActive;
     DWORD lastShotTick;
     
@@ -151,7 +153,12 @@ void FireAux(CtrlState* cs, DWORD now, float amp, int envMs, int side) {
 void FireShot(CtrlState* cs, DWORD now, float amp, const GpWeaponProfile* prof) {
     cs->shotActive = TRUE;
     cs->shotStart  = now;
-    cs->shotAmp    = Clamp01(amp);
+    cs->shotAmp     = Clamp01(amp);
+    cs->shotTrigL   = prof ? prof->trigL   : g_s.shotTrigL;
+    cs->shotTrigR   = prof ? prof->trigR   : g_s.shotTrigR;
+    cs->shotBodyL   = prof ? prof->bodyL   : g_s.shotBodyL;
+    cs->shotBodyR   = prof ? prof->bodyR   : g_s.shotBodyR;
+    cs->shotAttackMs = prof ? prof->attackMs : g_s.shotAttackMs;
     cs->lastShotTick = now;
 
     if (prof) {
@@ -255,16 +262,33 @@ void GpDefaultHapticsSettings(GpHapticsSettings* s) {
     s->shotFromRumble   = FALSE;   
 
     s->shotRiseThresh   = 0.20f;
+
+    
+
+    s->gunCount = 0;
+    for (int k = 0; k < GP_GUN_SLOTS; ++k) {
+        s->gun[k].shotGain  = 1.0f;
+        s->gun[k].shotEnvMs = 100;
+        s->gun[k].attackMs  = 8;
+    }
+
     s->driveLeftMotor   = TRUE;
     s->driveRightMotor  = TRUE;
     s->driveLeftTrigger = TRUE;
     s->driveRightTrigger= TRUE;
     s->shotReplaceGame  = TRUE;
+    s->shotBodyScale    = 0.60f;   
+    s->shotDecayExp     = 1.20f;   
     s->shotGain         = 1.0f;
     s->shotEnvMs        = 90;
     s->shotRefractoryMs = 55;
     s->shotSide         = 0;
     s->shotBodyKick     = 0.15f;
+    s->shotTrigL        = 0.0f;
+    s->shotTrigR        = 160.0f;
+    s->shotBodyL        = 60.0f;
+    s->shotBodyR        = 80.0f;
+    s->shotAttackMs     = 8;
     
 
 
@@ -389,6 +413,10 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
     if (g_s.bowDrawGain > 1.0f) g_s.bowDrawGain = 1.0f;
     if (g_s.bowDrawRampMs < 100) g_s.bowDrawRampMs = 100;
     if (g_s.bowDrawRampMs > 5000) g_s.bowDrawRampMs = 5000;
+    if (g_s.shotBodyScale < 0.0f) g_s.shotBodyScale = 0.0f;
+    if (g_s.shotBodyScale > 2.0f) g_s.shotBodyScale = 2.0f;
+    if (g_s.shotDecayExp < 0.3f) g_s.shotDecayExp = 0.3f;
+    if (g_s.shotDecayExp > 4.0f) g_s.shotDecayExp = 4.0f;
     if (g_s.reloadGain < 0.0f) g_s.reloadGain = 0.0f;
     if (g_s.reloadEnvMs < 10) g_s.reloadEnvMs = 10;
     if (g_s.reloadEnvMs > 500) g_s.reloadEnvMs = 500;
@@ -403,6 +431,16 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
         if (g_s.gun[i].shotEnvMs > 400) g_s.gun[i].shotEnvMs = 400;
         if (g_s.gun[i].shotGain < 0.0f) g_s.gun[i].shotGain = 0.0f;
         if (g_s.gun[i].shotGain > 4.0f) g_s.gun[i].shotGain = 4.0f;
+        if (g_s.gun[i].trigL < 0.0f) g_s.gun[i].trigL = 0.0f;
+        if (g_s.gun[i].trigR < 0.0f) g_s.gun[i].trigR = 0.0f;
+        if (g_s.gun[i].bodyL < 0.0f) g_s.gun[i].bodyL = 0.0f;
+        if (g_s.gun[i].bodyR < 0.0f) g_s.gun[i].bodyR = 0.0f;
+        if (g_s.gun[i].bodyR > 255.0f) g_s.gun[i].bodyR = 255.0f;
+        if (g_s.gun[i].trigR > 255.0f) g_s.gun[i].trigR = 255.0f;
+        if (g_s.gun[i].bodyL > 255.0f) g_s.gun[i].bodyL = 255.0f;
+        if (g_s.gun[i].trigL > 255.0f) g_s.gun[i].trigL = 255.0f;
+        if (g_s.gun[i].attackMs < 1) g_s.gun[i].attackMs = 1;
+        if (g_s.gun[i].attackMs > 100) g_s.gun[i].attackMs = 100;
         g_s.gun[i].name[sizeof(g_s.gun[i].name) - 1] = 0;
     }
     for (int i = 0; i < g_s.weaponCount; ++i) {
@@ -410,6 +448,15 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
         if (g_s.weapon[i].shotEnvMs > 400) g_s.weapon[i].shotEnvMs = 400;
         if (g_s.weapon[i].shotGain < 0.0f) g_s.weapon[i].shotGain = 0.0f;
         if (g_s.weapon[i].shotGain > 4.0f) g_s.weapon[i].shotGain = 4.0f;
+        if (g_s.weapon[i].trigL < 0.0f) g_s.weapon[i].trigL = 0.0f;
+        if (g_s.weapon[i].trigR < 0.0f) g_s.weapon[i].trigR = 0.0f;
+        if (g_s.weapon[i].bodyL < 0.0f) g_s.weapon[i].bodyL = 0.0f;
+        if (g_s.weapon[i].bodyR < 0.0f) g_s.weapon[i].bodyR = 0.0f;
+        if (g_s.weapon[i].trigR > 255.0f) g_s.weapon[i].trigR = 255.0f;
+        if (g_s.weapon[i].bodyL > 255.0f) g_s.weapon[i].bodyL = 255.0f;
+        if (g_s.weapon[i].bodyR > 255.0f) g_s.weapon[i].bodyR = 255.0f;
+        if (g_s.weapon[i].trigL > 255.0f) g_s.weapon[i].trigL = 255.0f;
+        if (g_s.weapon[i].attackMs < 1) g_s.weapon[i].attackMs = 1;
         g_s.weapon[i].name[sizeof(g_s.weapon[i].name) - 1] = 0;
     }
 
@@ -808,9 +855,12 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
             float tMs = (float)t;
             
 
-            float attack = tMs < kShotAttackMs ? (tMs / kShotAttackMs) : 1.0f;
+            
+
+            float atkMs = (float)(cs->shotAttackMs > 0 ? cs->shotAttackMs : 8);
+            float attack = tMs < atkMs ? (tMs / atkMs) : 1.0f;
             float x = tMs / (float)envMs;
-            float decay = powf(1.0f - x, 1.2f);
+            float decay = powf(1.0f - x, g_s.shotDecayExp);
             float env = attack * decay * cs->shotAmp;
 
             
@@ -819,13 +869,13 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
 
             float env255 = env * 255.0f;
 
-            switch (g_s.shotSide) {
-            case 1:  addTrigL += env255; break;
-            case 2:  addTrigL += env255; addTrigR += env255; break;
-            default: addTrigR += env255; break;
-            }
-            addBodyL += env255 * cs->shotBodyKick;
-            addBodyR += env255 * cs->shotBodyKick;
+            
+
+
+            addTrigL += cs->shotTrigL * env;
+            addTrigR += cs->shotTrigR * env;
+            addBodyL += cs->shotBodyL * env * g_s.shotBodyScale;
+            addBodyR += cs->shotBodyR * env * g_s.shotBodyScale;
         } else {
             cs->shotActive = FALSE;
         }

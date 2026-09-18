@@ -25,6 +25,18 @@ typedef struct GpWeaponProfile {
     float    aimTrig;      
     float    aimBody;      
     float    aimWobble;    
+    
+
+
+
+
+
+
+    float trigL;         
+    float trigR;         
+    float bodyL;         
+    float bodyR;         
+    int   attackMs;      
     char     name[24];     
 } GpWeaponProfile;
 
@@ -82,7 +94,13 @@ struct GpHapticsSettings {
     int   shotEnvMs;           
     int   shotRefractoryMs;    
     int   shotSide;            
-    float shotBodyKick;        
+    float shotBodyKick;      
+
+    
+    float shotTrigL, shotTrigR, shotBodyL, shotBodyR;
+    int   shotAttackMs;
+    float shotBodyScale;
+    float shotDecayExp;        
     
 
 

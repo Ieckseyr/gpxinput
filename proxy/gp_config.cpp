@@ -280,6 +280,13 @@ void GpConfigLoad(GpProxyConfig* cfg) {
         h.shotRefractoryMs = ReadInt(ini, L"Haptics", L"ShotRefractoryMs", h.shotRefractoryMs);
         h.shotSide         = ReadInt(ini, L"Haptics", L"ShotSide", h.shotSide);
         h.shotBodyKick     = ReadFloat(ini, L"Haptics", L"ShotBodyKick", h.shotBodyKick);
+        h.shotTrigL        = ReadFloat(ini, L"Haptics", L"ShotTrigL", h.shotTrigL);
+        h.shotTrigR        = ReadFloat(ini, L"Haptics", L"ShotTrigR", h.shotTrigR);
+        h.shotBodyL        = ReadFloat(ini, L"Haptics", L"ShotBodyL", h.shotBodyL);
+        h.shotBodyR        = ReadFloat(ini, L"Haptics", L"ShotBodyR", h.shotBodyR);
+        h.shotAttackMs     = ReadInt(ini, L"Haptics", L"ShotAttackMs", h.shotAttackMs);
+        h.shotBodyScale    = ReadFloat(ini, L"Haptics", L"ShotBodyScale", h.shotBodyScale);
+        h.shotDecayExp     = ReadFloat(ini, L"Haptics", L"ShotDecayExp", h.shotDecayExp);
         h.rideShotBoost    = ReadFloat(ini, L"Haptics", L"RideShotBoost", h.rideShotBoost);
         h.rideSpeedLow     = ReadFloat(ini, L"Haptics", L"RideSpeedLow", h.rideSpeedLow);
         h.rideSpeedHigh    = ReadFloat(ini, L"Haptics", L"RideSpeedHigh", h.rideSpeedHigh);
@@ -334,6 +341,11 @@ void GpConfigLoad(GpProxyConfig* cfg) {
             p.shotGain     = ReadFloat(ini, sec, L"ShotGain", p.shotGain);
             p.shotEnvMs    = ReadInt(ini, sec, L"ShotEnvMs", p.shotEnvMs);
             p.shotBodyKick = ReadFloat(ini, sec, L"ShotBodyKick", p.shotBodyKick);
+            p.trigL        = ReadFloat(ini, sec, L"ShotTrigL", p.trigL);
+            p.trigR        = ReadFloat(ini, sec, L"ShotTrigR", p.trigR);
+            p.bodyL        = ReadFloat(ini, sec, L"ShotBodyL", p.bodyL);
+            p.bodyR        = ReadFloat(ini, sec, L"ShotBodyR", p.bodyR);
+            p.attackMs     = ReadInt(ini, sec, L"ShotAttackMs", p.attackMs);
             p.aimTrig      = ReadFloat(ini, sec, L"AimTrig", p.aimTrig);
             p.aimBody      = ReadFloat(ini, sec, L"AimBody", p.aimBody);
             p.aimWobble    = ReadFloat(ini, sec, L"AimWobble", p.aimWobble);
@@ -361,6 +373,11 @@ void GpConfigLoad(GpProxyConfig* cfg) {
             p.shotGain     = ReadFloat(ini, sec, L"ShotGain", p.shotGain);
             p.shotEnvMs    = ReadInt(ini, sec, L"ShotEnvMs", p.shotEnvMs);
             p.shotBodyKick = ReadFloat(ini, sec, L"ShotBodyKick", p.shotBodyKick);
+            p.trigL        = ReadFloat(ini, sec, L"ShotTrigL", p.trigL);
+            p.trigR        = ReadFloat(ini, sec, L"ShotTrigR", p.trigR);
+            p.bodyL        = ReadFloat(ini, sec, L"ShotBodyL", p.bodyL);
+            p.bodyR        = ReadFloat(ini, sec, L"ShotBodyR", p.bodyR);
+            p.attackMs     = ReadInt(ini, sec, L"ShotAttackMs", p.attackMs);
             p.aimTrig      = ReadFloat(ini, sec, L"AimTrig", p.aimTrig);
             p.aimBody      = ReadFloat(ini, sec, L"AimBody", p.aimBody);
             p.aimWobble    = ReadFloat(ini, sec, L"AimWobble", p.aimWobble);

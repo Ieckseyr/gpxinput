@@ -175,8 +175,8 @@ void RunAim(void) {
 
 void RunBow(void) {
     GpResetHaptics();
-    GpConPrintf("' + B + 'n==== 拉弓（弓，RT 按住 2 秒）====' + B + 'n");
-    GpConPrintf("  t(ms)   出LT  出RT   出L   出R   （期望：两侧一起爬升）' + B + 'n");
+    GpConPrintf("\n==== 拉弓（弓，RT 按住 2 秒）====\n");
+    GpConPrintf("  t(ms)   出LT  出RT   出L   出R   （期望：两侧一起爬升）\n");
 
     GpRdr2State st;
     memset(&st, 0, sizeof(st));
@@ -200,11 +200,50 @@ void RunBow(void) {
         if ((int)o.leftTrigger  > peakLT) peakLT = o.leftTrigger;
         if ((int)o.rightTrigger > peakRT) peakRT = o.rightTrigger;
         if ((t % 250) == 0)
-            GpConPrintf("  %5u   %4u  %4u  %4u  %4u' + B + 'n", t, o.leftTrigger,
+            GpConPrintf("  %5u   %4u  %4u  %4u  %4u\n", t, o.leftTrigger,
                         o.rightTrigger, o.leftMotor, o.rightMotor);
     }
-    GpConPrintf("  ---- 两侧峰值 LT=%d RT=%d（应当接近相等且随时间爬升）' + B + 'n' + B + 'n",
+    GpConPrintf("  ---- 两侧峰值 LT=%d RT=%d（应当接近相等且随时间爬升）\n\n",
                 peakLT, peakRT);
+}
+
+
+
+void RunGunShot(void) {
+    GpResetHaptics();
+    GpConPrintf("\n==== 开枪（状态驱动：弹药 7 -> 6，M1899 手枪档）====\n");
+    GpConPrintf("  t(ms)   出LT  出RT   出L   出R   （期望：RT 主导，握把跟随）\n");
+
+    GpRdr2State st;
+    memset(&st, 0, sizeof(st));
+    st.magic       = GPRDR2_MAGIC;
+    st.version     = GPRDR2_VERSION;
+    st.weaponHash  = 0x5B78B8DD;      
+    st.weaponGroup = GPRDR2_GRP_PISTOL;
+    st.armed       = 1;
+    st.onFoot      = 1;
+    st.ammoInClip  = 7;
+
+    int pLT=0,pRT=0,pL=0,pR=0;
+    for (DWORD t = 0; t <= 400; t += kStepMs) {
+        if (t == 200) st.ammoInClip = 6;      
+        st.tickMs = 1000 + t;
+        GpOnPadInput(0, 1000 + t, 0, 255);    
+        GpOnGameState(0, 1000 + t, TRUE, &st);
+
+        GpHapticsOut o = {0, 0, 0, 0};
+        GpTickHaptics(0, 1000 + t, FALSE, 0, 0, 0, 0, &o);
+
+        if ((int)o.leftTrigger  > pLT) pLT = o.leftTrigger;
+        if ((int)o.rightTrigger > pRT) pRT = o.rightTrigger;
+        if ((int)o.leftMotor    > pL)  pL  = o.leftMotor;
+        if ((int)o.rightMotor   > pR)  pR  = o.rightMotor;
+
+        if (t >= 190 && t <= 300)
+            GpConPrintf("  %5u   %4u  %4u  %4u  %4u\n", t, o.leftTrigger,
+                        o.rightTrigger, o.leftMotor, o.rightMotor);
+    }
+    GpConPrintf("  ---- 峰值 LT=%d RT=%d L=%d R=%d\n\n", pLT, pRT, pL, pR);
 }
 
 }  
@@ -271,6 +310,9 @@ int main(int argc, char** argv) {
 
     
     if (which[0] == 'a' || which[0] == 'm') RunAim();
+
+    
+    if (which[0] == 'a' || which[0] == 'g') RunGunShot();
 
     
     if (which[0] == 'a' || which[0] == 'w') RunBow();
