@@ -165,6 +165,13 @@ struct GpHapticsSettings {
     BOOL  useGameState;
 
     
+
+
+
+
+    BOOL  aimBothTriggers;
+
+    
     float aimBreathHz;
 
     

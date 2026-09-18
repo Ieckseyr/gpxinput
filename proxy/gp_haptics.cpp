@@ -318,6 +318,7 @@ void GpDefaultHapticsSettings(GpHapticsSettings* s) {
 
     
     s->useGameState = TRUE;
+    s->aimBothTriggers  = FALSE;
     s->aimBreathHz  = 0.4f;   
     s->aimTriggerLevel = 0.24f;  
     s->aimHoldMs       = 300;    
@@ -1067,7 +1068,9 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
             }
             cs->aimActiveNow = TRUE;
             addTrigL += prof->aimTrig * 255.0f * ramp;
-            addTrigR += prof->aimTrig * 255.0f * ramp;
+            
+            if (g_s.aimBothTriggers)
+                addTrigR += prof->aimTrig * 255.0f * ramp;
             addBodyL += prof->aimBody * 255.0f * ramp * breath;
             addBodyR += prof->aimBody * 255.0f * ramp * breath;
         }
