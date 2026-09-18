@@ -423,6 +423,8 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
     if (g_s.rideAmpMax > 1.0f) g_s.rideAmpMax = 1.0f;
     if (g_s.rideAmpMin < 0.0f) g_s.rideAmpMin = 0.0f;
     if (g_s.rideAmpMin > g_s.rideAmpMax) g_s.rideAmpMin = g_s.rideAmpMax;
+    if (g_s.rideBodyBase < 0.0f) g_s.rideBodyBase = 0.0f;
+    if (g_s.rideBodyBase > 0.5f) g_s.rideBodyBase = 0.5f;
     if (g_s.rideFadeMs < 0.0f) g_s.rideFadeMs = 0.0f;
     if (g_s.rideFadeMs > 5000.0f) g_s.rideFadeMs = 5000.0f;
     if (g_s.rideBeats < 1) g_s.rideBeats = 1;
@@ -1104,6 +1106,13 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
                            ? g_s.rideBeatAccent : 1.0f;
 
             float amp = Clamp01(cs->rideAmp * g_s.rideGain) * env * accent;
+            
+
+            float base = Clamp01(g_s.rideBodyBase * g_s.rideGain) *
+                         Clamp01(cs->rideAmp / (g_s.rideAmpMin > 0.0f ? g_s.rideAmpMin : 0.1f));
+            if (base > 1.0f) base = 1.0f;
+            addBodyL += base * 255.0f * 0.5f;
+            addBodyR += base * 255.0f * 0.5f;
             addBodyL += amp * 255.0f * 0.5f;
             addBodyR += amp * 255.0f * 0.5f;
             addTrigL += amp * g_s.rideTrigGain * 255.0f;

@@ -159,6 +159,10 @@ struct GpHapticsSettings {
 
     
 
+    float rideBodyBase;
+
+    
+
     float rideFadeMs;
 
     

@@ -426,7 +426,19 @@ void Tick(void) {
                     lastGroup = group;
                     Log("换武器组：0x%08X（%s）", group, GroupName(group));
                 }
-                if (flags != lastFlags) {
+                
+        {
+            static uint8_t lastGait = 255;
+            if (g_state->horseGait != lastGait) {
+                lastGait = g_state->horseGait;
+                const char* names[] = {"走步(4拍)", "小跑/坎特", "疾驰(4拍)", "不在马上"};
+                Log("坐骑步态 -> %s（马速 %.1f）",
+                    g_state->horseGait <= 2 ? names[g_state->horseGait] : names[3],
+                    (double)g_state->horseSpeed);
+            }
+        }
+
+        if (flags != lastFlags) {
                     lastFlags = flags;
                     Log("动作：开枪=%s 瞄准=%s 持械=%s 骑马=%s 菜单=%s 装弹=%s 步行=%s",
                         g_state->shooting ? "是" : "否",
