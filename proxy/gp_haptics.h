@@ -153,6 +153,12 @@ struct GpHapticsSettings {
 
     
 
+
+
+    float rideAmpMin;
+
+    
+
     float rideFadeMs;
 
     int   rideBeats;

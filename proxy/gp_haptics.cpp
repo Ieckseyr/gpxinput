@@ -312,7 +312,8 @@ void GpDefaultHapticsSettings(GpHapticsSettings* s) {
     s->ridePeakThresh   = 0.10f;
     s->rideSpeedLow     = 1.0f;
     s->rideCurve        = 1.6f;
-    s->rideAmpMax       = 0.35f;   
+    s->rideAmpMax       = 0.35f;
+    s->rideAmpMin       = 0.20f;   
     s->rideFadeMs       = 700.0f;
     s->rideBeats        = 4;
     s->rideBeatAccent   = 0.6f;
@@ -413,6 +414,8 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
     if (g_s.rideCurve > 4.0f) g_s.rideCurve = 4.0f;
     if (g_s.rideAmpMax < 0.0f) g_s.rideAmpMax = 0.0f;
     if (g_s.rideAmpMax > 1.0f) g_s.rideAmpMax = 1.0f;
+    if (g_s.rideAmpMin < 0.0f) g_s.rideAmpMin = 0.0f;
+    if (g_s.rideAmpMin > g_s.rideAmpMax) g_s.rideAmpMin = g_s.rideAmpMax;
     if (g_s.rideFadeMs < 0.0f) g_s.rideFadeMs = 0.0f;
     if (g_s.rideFadeMs > 5000.0f) g_s.rideFadeMs = 5000.0f;
     if (g_s.rideBeats < 1) g_s.rideBeats = 1;
@@ -1003,7 +1006,10 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
 
             
 
-            target = g_s.rideAmpMax * powf(k, g_s.rideCurve);
+            
+
+            target = g_s.rideAmpMin +
+                     (g_s.rideAmpMax - g_s.rideAmpMin) * powf(k, g_s.rideCurve);
 
             
             DWORD period = (DWORD)(g_s.rideMaxPeriodMs +
