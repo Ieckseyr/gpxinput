@@ -771,17 +771,20 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
 
 
 
-    const GpWeaponProfile* prof = FindProfile(st->weaponGroup, st->weaponHash);
-    DWORD refr = (DWORD)g_s.triggerRefractoryMs;
 
-    if (st->ammoInClip >= 0 && st->ammoInClip < cs->lastAmmo) {
-        int fired = cs->lastAmmo - st->ammoInClip;
-        if (fired > 8) fired = 1;      
-        for (int i = 0; i < fired; ++i) {
-            if (i > 0 && now - cs->lastShotTick < refr) break;
-            float amp = prof ? prof->shotGain : g_s.shotGain;
-            FireShot(cs, now, amp, prof);
-        }
+
+
+
+
+
+    const GpWeaponProfile* prof = FindProfile(st->weaponGroup, st->weaponHash);
+
+    BOOL shootingNow = st->shooting != 0;
+    if (shootingNow &&
+        ((!cs->wasShooting) || (now - cs->lastShotTick) >= (DWORD)g_s.triggerRefractoryMs)) {
+        float amp = prof ? prof->shotGain : g_s.shotGain;
+        FireShot(cs, now, amp, prof);
+
         
 
         {
@@ -789,18 +792,13 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
             float rtv = (prof ? prof->trigR : g_s.shotTrigR) * gg;
             if (rtv < g_s.shotTrigFloor) rtv = g_s.shotTrigFloor;
             if (rtv > g_s.shotTrigCeil)  rtv = g_s.shotTrigCeil;
-            GP_LOG_INFO("haptics: 判定开枪 %d 发「%s」-> 扳机 L=%.0f R=%.0f 握把 L=%.0f R=%.0f 时长=%dms",
-                        fired, prof ? prof->name : "通用",
+            GP_LOG_INFO("haptics: 开枪「%s」-> 扳机 L=%.0f R=%.0f 握把 L=%.0f R=%.0f 时长=%dms",
+                        prof ? prof->name : "通用",
                         (prof ? prof->trigL : g_s.shotTrigL) * gg, rtv,
                         (prof ? prof->bodyL : g_s.shotBodyL) * g_s.shotBodyScale * gg,
                         (prof ? prof->bodyR : g_s.shotBodyR) * g_s.shotBodyScale * gg,
                         prof ? prof->shotEnvMs : g_s.shotEnvMs);
         }
-    } else if (!prof && st->shooting && !cs->wasShooting &&
-               now - cs->lastShotTick >= refr) {
-        
-        FireShot(cs, now, g_s.shotGain, nullptr);
-        GP_LOG_DEBUG("haptics: shooting 上升沿 -> 开枪脉冲（组=0x%08X）", st->weaponGroup);
     }
 
     cs->lastAmmo    = st->ammoInClip;

@@ -211,7 +211,7 @@ void RunBow(void) {
 
 void RunGunShot(void) {
     GpResetHaptics();
-    GpConPrintf("\n==== 开枪（状态驱动：弹药 7 -> 6，M1899 手枪档）====\n");
+    GpConPrintf("\n==== 开枪（状态驱动：IS_PED_SHOOTING 上升沿，M1899 手枪档）====\n");
     GpConPrintf("  t(ms)   出LT  出RT   出L   出R   （期望：RT 主导，握把跟随）\n");
 
     GpRdr2State st;
@@ -226,7 +226,8 @@ void RunGunShot(void) {
 
     int pLT=0,pRT=0,pL=0,pR=0;
     for (DWORD t = 0; t <= 400; t += kStepMs) {
-        if (t == 200) st.ammoInClip = 6;      
+        if (t == 200) st.shooting = 1;        
+        if (t == 224) st.shooting = 0;        
         st.tickMs = 1000 + t;
         GpOnPadInput(0, 1000 + t, 0, 255);    
         GpOnGameState(0, 1000 + t, TRUE, &st);
