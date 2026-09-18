@@ -348,7 +348,8 @@ void Tick(void) {
                                           (g_state->onMount   ? 4 : 0) |
                                           (g_state->menuActive? 8 : 0) |
                                           (g_state->reloading ? 16 : 0) |
-                                          (g_state->onFoot    ? 32 : 0));
+                                          (g_state->onFoot    ? 32 : 0) |
+                                          (g_state->shooting  ? 64 : 0));
 
                 if (weapon != lastWeapon) {
                     lastWeapon = weapon;
@@ -360,10 +361,14 @@ void Tick(void) {
                 }
                 if (flags != lastFlags) {
                     lastFlags = flags;
-                    Log("动作：瞄准=%s 持械=%s 骑马=%s 菜单=%s 装弹=%s 步行=%s",
-                        g_state->aiming ? "是" : "否", g_state->armed ? "是" : "否",
-                        g_state->onMount ? "是" : "否", g_state->menuActive ? "是" : "否",
-                        g_state->reloading ? "是" : "否", g_state->onFoot ? "是" : "否");
+                    Log("动作：开枪=%s 瞄准=%s 持械=%s 骑马=%s 菜单=%s 装弹=%s 步行=%s",
+                        g_state->shooting ? "是" : "否",
+                        g_state->aiming ? "是" : "否",
+                        g_state->armed ? "是" : "否",
+                        g_state->onMount ? "是" : "否",
+                        g_state->menuActive ? "是" : "否",
+                        g_state->reloading ? "是" : "否",
+                        g_state->onFoot ? "是" : "否");
                 }
             }
             
