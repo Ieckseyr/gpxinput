@@ -821,7 +821,7 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
                         (prof ? prof->trigL : g_s.shotTrigL) * gg, rtv,
                         (prof ? prof->bodyL : g_s.shotBodyL) * g_s.shotBodyScale * gg,
                         (prof ? prof->bodyR : g_s.shotBodyR) * g_s.shotBodyScale * gg,
-                        prof ? prof->shotEnvMs : g_s.shotEnvMs);
+                        cs->shotEnvMs);   
         }
     }
 
@@ -946,7 +946,11 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
         cs->bowActiveNow = TRUE;
         if (cs->bowDrawStart == 0) {
             cs->bowDrawStart = now;
-            GP_LOG_DEBUG("haptics: 开始拉弓 -> 两侧扳机持续震动");
+            
+
+            GP_LOG_INFO("haptics: 开始拉弓 -> 两侧扳机持续震动（峰值 %.0f，%dms 拉满，握把 %.0f）",
+                        (double)(g_s.bowDrawGain * 255.0f), g_s.bowDrawRampMs,
+                        (double)(g_s.bowDrawGain * 255.0f * 0.20f));
         }
         DWORD t = now - cs->bowDrawStart;
         float k = (float)t / (float)g_s.bowDrawRampMs;
