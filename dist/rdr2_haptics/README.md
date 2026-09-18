@@ -22,6 +22,7 @@
 | **掏出/切换武器 → 一下反馈** | 武器哈希变化时给一下 |
 | **骑马 → 辅助震动** | 按检出的马蹄节奏补一路辅助（主输出在体感马达，轻量同步到扳机） |
 | 手柄没有扳机电机也能用 | 扳机那两路的数值会按 TrigToBody 折算到同侧体感马达 —— 多数第三方手柄走这条 |
+| 任何一路都能退回原生 | 四个电机各自一个开关（`Drive*`），设 `false` 的那一路游戏给什么就发什么 |
 | 其余一切照旧 | 游戏原生震动原样保留，我们只是叠加 |
 
 **为什么「不同枪」必须读游戏状态**：实测 RDR2 PC 的震动是个「几位状态机」——
@@ -104,6 +105,7 @@ ScriptHookRDR2 入口解析成功
 | 键 | 默认 | 说明 |
 |---|---|---|
 | `SelfHaptics` | `true` | 自合成总开关 |
+| `DriveLeftMotor`<br>`DriveRightMotor`<br>`DriveLeftTrigger`<br>`DriveRightTrigger` | `true` | **逐路直通**：设 `false` 的那一路完全由游戏原值决定，我们一点不碰（连扳机折算都不落上去）。想让体感保持原生、只让扳机动 → 两个 `Motor` 设 `false`；只想补扳机 → 两个 `Trigger` 设 `false` |
 | `ShotFromTrigger` | `true` | 无游戏状态时的开枪判据：右扳机扣下 |
 | `TriggerPressThresh` | `0.55` | 扣到多深算「扣下」 |
 | `TriggerReleaseHyst` | `0.20` | **相对**峰值的回弹量（连发必需，见第 6 节） |
@@ -112,6 +114,8 @@ ScriptHookRDR2 入口解析成功
 | `TrigToBody` | `0.45` | 没有扳机通道时折算到体感马达的比例 |
 | `UseGameState` | `true` | 有 .asi 时采信游戏状态 |
 | `AimBreathHz` | `0.40` | 瞄准震动的起伏频率（0=完全平稳） |
+| `LtPressGain` / `LtPressEnvMs` | `0.70` / `110` | **按下 LT 就震一下**的强度与时长（只走左侧；不依赖游戏状态） |
+| `ShotGain` / `ShotEnvMs` | `2.0` / `170` | 无游戏状态时的通用开枪强度/时长 |
 
 ### `[Weapon0]`..`[Weapon7]` —— 不同枪不同手感
 
@@ -119,9 +123,9 @@ ScriptHookRDR2 入口解析成功
 
 | 键 | 说明 |
 |---|---|
-| `ShotGain` | 开枪脉冲强度（霰弹 1.60 > 狙击 1.35 > 步枪 1.20 > 左轮 0.95 > 弓 0.70） |
-| `ShotEnvMs` | 脉冲时长（70ms 脆 ↔ 140ms 绵） |
-| `ShotBodyKick` | 同一次开枪附加到体感马达的量 |
+| `ShotGain` | 开枪脉冲强度（霰弹 3.20 > 狙击 2.70 > 步枪 2.40 > 左轮 1.90 > 弓 1.40；扳机通道在扣满时会打满，档位差异主要落在时长和体感上） |
+| `ShotEnvMs` | 脉冲时长（手枪 133ms 脆 ↔ 弓 266ms 绵） |
+| `ShotBodyKick` | 同一次开枪附加到体感马达的量（这条才是没有扳机电机时真正摸到的量） |
 | `AimTrig` / `AimBody` | 瞄准时扳机 / 体感上的持续量（0 = 关） |
 | `AimWobble` | 瞄准时的呼吸式起伏（狙击 0.35 稳、弓 0.80 抖） |
 
@@ -181,6 +185,19 @@ gp_envtest.exe 量包络数值      -> 改完参数脉冲到底多长多高
 
 ---
 
+### 踩过的坑：脚本被加载了却没注册
+
+现象是状态永远「离线」、日志里一句错都没有。原因：`ScriptHookRDR2.dll` 导出的符号是
+**C++ 修饰名**（`?nativeInit@@YAX_K@Z`），按 `"nativeInit"` 去 `GetProcAddress` 永远拿到
+`NULL`。现在改成按前缀扫它自己的导出表（`?nativeInit@@`），并且把「哪几个入口取到了」
+写进 `gpxinput_rdr2.log`。怀疑这一环时可以直接跑：
+
+```
+shresolve_test.exe ScriptHookRDR2.dll     -> 七个入口应当全部「取到」
+```
+
+---
+
 ## 7. 包内文件
 
 | 文件 | 类型 | 说明 |
@@ -190,6 +207,8 @@ gp_envtest.exe 量包络数值      -> 改完参数脉冲到底多长多高
 | `gp_monitor.exe` | 工具 | 四电机实时监视（只读共享段，关掉不影响震动） |
 | `gpxinput.ini` | 配置 | 全部开关与手感参数 |
 | `xinput1_3.dll` / `xinput1_4.dll` | 代理 | 同一份代码，服务其他游戏 |
+| `gp_envtest.exe` | 工具 | 离线量「脉冲多长多高」：读同目录的 `gpxinput.ini`，喂一条人造时间线并打印每个 8ms 周期的输出 |
+| `shresolve_test.exe` | 工具 | 诊断用：验证能不能从 `ScriptHookRDR2.dll` 取到脚本入口（`shresolve_test.exe <ScriptHookRDR2.dll>`） |
 | `mod.json` | 元数据 | mod 类型、组件、依赖、冲突、卸载清单 |
 | `README.md` | 文档 | 本文件 |
 

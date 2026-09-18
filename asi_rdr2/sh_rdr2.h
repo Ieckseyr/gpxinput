@@ -4,6 +4,8 @@
 
 #include <windows.h>
 #include <stdint.h>
+#include <string.h>
+#include <stdio.h>
 
 namespace sh {
 
@@ -24,19 +26,95 @@ inline FnNativeCall      nativeCall      = nullptr;
 inline FnGetGlobalPtr    getGlobalPtr    = nullptr;
 
 
+
+
+
+
+
+
+
+inline const char* FindExportByPrefix(HMODULE h, const char* prefix) {
+    const BYTE* base = (const BYTE*)h;
+    const IMAGE_DOS_HEADER* dos = (const IMAGE_DOS_HEADER*)base;
+    if (dos->e_magic != IMAGE_DOS_SIGNATURE) return nullptr;
+
+    const IMAGE_NT_HEADERS* nt = (const IMAGE_NT_HEADERS*)(base + dos->e_lfanew);
+    if (nt->Signature != IMAGE_NT_SIGNATURE) return nullptr;
+
+    const IMAGE_DATA_DIRECTORY& dir =
+        nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT];
+    if (dir.VirtualAddress == 0 || dir.Size == 0) return nullptr;
+
+    const IMAGE_EXPORT_DIRECTORY* exp =
+        (const IMAGE_EXPORT_DIRECTORY*)(base + dir.VirtualAddress);
+    const DWORD* names = (const DWORD*)(base + exp->AddressOfNames);
+    size_t len = 0;
+    while (prefix[len]) ++len;
+
+    for (DWORD i = 0; i < exp->NumberOfNames; ++i) {
+        const char* n = (const char*)(base + names[i]);
+        if (strncmp(n, prefix, len) == 0) return n;
+    }
+    return nullptr;
+}
+
+
+inline void* Take(HMODULE h, const char* decoratedPrefix, const char* plain) {
+    const char* real = FindExportByPrefix(h, decoratedPrefix);
+    void* p = real ? GetProcAddress(h, real) : nullptr;
+    if (!p) p = GetProcAddress(h, plain);
+    return p;
+}
+
+
+
+inline const char* Report(void) {
+    static char buf[512];
+    HMODULE h = GetModuleHandleW(L"ScriptHookRDR2.dll");
+    if (!h) {
+        lstrcpynA(buf, "ScriptHookRDR2.dll 未加载", sizeof(buf));
+        return buf;
+    }
+    char sample[200] = {0};
+    int written = 0;
+    const BYTE* base = (const BYTE*)h;
+    const IMAGE_DOS_HEADER* dos = (const IMAGE_DOS_HEADER*)base;
+    if (dos->e_magic == IMAGE_DOS_SIGNATURE) {
+        const IMAGE_NT_HEADERS* nt = (const IMAGE_NT_HEADERS*)(base + dos->e_lfanew);
+        const IMAGE_DATA_DIRECTORY& dir =
+            nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT];
+        const IMAGE_EXPORT_DIRECTORY* exp =
+            (const IMAGE_EXPORT_DIRECTORY*)(base + dir.VirtualAddress);
+        const DWORD* names = (const DWORD*)(base + exp->AddressOfNames);
+        DWORD n = exp->NumberOfNames < 3 ? exp->NumberOfNames : 3;
+        for (DWORD i = 0; i < n; ++i) {
+            written += sprintf(sample + written, "%s%s",
+                               i ? " " : "", (const char*)(base + names[i]));
+        }
+    }
+    sprintf(buf, "scriptRegister=%s nativeInit=%s nativeCall=%s 导出示例: %s",
+              scriptRegister ? "OK" : "无", nativeInit ? "OK" : "无",
+              nativeCall ? "OK" : "无", sample);
+    return buf;
+}
+
+
 inline bool Resolve(void) {
     HMODULE h = GetModuleHandleW(L"ScriptHookRDR2.dll");
     if (!h) return false;
 
-    scriptRegister   = (FnScriptRegister)  GetProcAddress(h, "scriptRegister");
-    scriptUnregister = (FnScriptUnregister)GetProcAddress(h, "scriptUnregister");
-    scriptWait       = (FnScriptWait)      GetProcAddress(h, "scriptWait");
-    nativeInit       = (FnNativeInit)      GetProcAddress(h, "nativeInit");
-    nativePush64     = (FnNativePush64)    GetProcAddress(h, "nativePush64");
-    nativeCall       = (FnNativeCall)      GetProcAddress(h, "nativeCall");
-    getGlobalPtr     = (FnGetGlobalPtr)    GetProcAddress(h, "getGlobalPtr");
+    scriptRegister   = (FnScriptRegister)  Take(h, "?scriptRegister@@",   "scriptRegister");
+    scriptUnregister = (FnScriptUnregister)Take(h, "?scriptUnregister@@YAXPEAUHINSTANCE__@@",
+                                                   "scriptUnregister");
+    scriptWait       = (FnScriptWait)      Take(h, "?scriptWait@@",       "scriptWait");
+    nativeInit       = (FnNativeInit)      Take(h, "?nativeInit@@",       "nativeInit");
+    nativePush64     = (FnNativePush64)    Take(h, "?nativePush64@@",     "nativePush64");
+    nativeCall       = (FnNativeCall)      Take(h, "?nativeCall@@",       "nativeCall");
+    getGlobalPtr     = (FnGetGlobalPtr)    Take(h, "?getGlobalPtr@@",     "getGlobalPtr");
 
-    return scriptWait && nativeInit && nativePush64 && nativeCall;
+    
+
+    return scriptRegister && nativeInit && nativePush64 && nativeCall;
 }
 
 }  

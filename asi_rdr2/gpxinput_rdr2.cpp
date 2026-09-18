@@ -172,17 +172,23 @@ void Tick(void) {
 
 
 DWORD WINAPI BootThread(LPVOID) {
-    for (int i = 0; i < 600; ++i) {          
+    
+
+
+    for (int i = 0; i < 3000; ++i) {         
         if (sh::Resolve()) {
             if (InterlockedCompareExchange(&g_registered, 1, 0) != 0) return 0;
             OpenState();
             sh::scriptRegister(g_self, Tick);
-            Log("已向 ScriptHookRDR2 注册脚本（等待 %d ms）", i * 100);
+            Log("已向 ScriptHookRDR2 注册脚本（等了 %d ms）", i * 100);
             return 0;
         }
+        if (i > 0 && (i % 100) == 0)
+            Log("等待 ScriptHookRDR2... 已等 %d 秒（%s）", i / 10, sh::Report());
         Sleep(100);
     }
-    Log("等待 ScriptHookRDR2 超时（60 秒）—— 脚本未注册，代理会退回只看扳机");
+    Log("等待 ScriptHookRDR2 超时（5 分钟）—— 脚本未注册，代理会退回只看扳机（%s）",
+        sh::Report());
     return 0;
 }
 

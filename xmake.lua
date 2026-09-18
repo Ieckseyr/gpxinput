@@ -183,6 +183,17 @@ target("gp_trigtest")
 
 
 
+target("shresolve_test")
+    set_kind("binary")
+    add_files("tools/shresolve_test/shresolve_test.cpp")
+    add_includedirs("asi_rdr2")
+    set_targetdir("$(builddir)/tools")
+
+
+
+
+
+
 target("gp_envtest")
     set_kind("binary")
     add_files("tools/gp_envtest/gp_envtest.cpp")
