@@ -868,6 +868,15 @@ BOOL GpHapticsActive(uint32_t controller) {
     if (cs->shotActive && (DWORD)(now - cs->shotStart) < (DWORD)g_s.shotEnvMs) return TRUE;
     if (g_s.rideEnable && now < cs->rideUntil) return TRUE;
     if (cs->auxActive) return TRUE;
+
+    
+
+
+
+
+
+    if (cs->aimActiveNow || cs->bowActiveNow) return TRUE;
+
     return FALSE;
 }
 

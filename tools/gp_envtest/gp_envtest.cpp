@@ -151,6 +151,7 @@ void RunAim(void) {
     st.onFoot      = 1;
 
     int ltMin = 999, ltMax = 0, bodyMin = 999, bodyMax = 0;
+    int aimActiveTicks = 0;
     for (DWORD t = 0; t <= 3000; t += kStepMs) {
         st.tickMs = 1000 + t;
         GpOnPadInput(0, 1000 + t, 200, 0);          
@@ -158,6 +159,7 @@ void RunAim(void) {
 
         GpHapticsOut o = {0, 0, 0, 0};
         GpTickHaptics(0, 1000 + t, FALSE, 0, 0, 0, 0, &o);
+        if (GpHapticsActive(0)) aimActiveTicks++;
 
         if ((int)o.leftTrigger < ltMin) ltMin = o.leftTrigger;
         if ((int)o.leftTrigger > ltMax) ltMax = o.leftTrigger;
@@ -168,8 +170,13 @@ void RunAim(void) {
             GpConPrintf("  %5u   %4u  %4u  %4u  %4u\n", t, o.leftTrigger,
                         o.rightTrigger, o.leftMotor, o.rightMotor);
     }
-    GpConPrintf("  ---- 扳机范围 %d~%d（越窄越「稳」），握把范围 %d~%d（应当有起伏）\n\n",
+    GpConPrintf("  ---- 扳机范围 %d~%d（越窄越「稳」），握把范围 %d~%d（应当有起伏）\n",
                 ltMin, ltMax, bodyMin, bodyMax);
+    
+
+
+    GpConPrintf("  ---- 引擎认为有合成内容的帧数 %d（必须 > 0，否则输出会被丢掉）\n",
+                aimActiveTicks);
 }
 
 
@@ -188,7 +195,7 @@ void RunBow(void) {
     st.aiming      = 0;   
     st.onFoot      = 1;
 
-    int peakLT = 0, peakRT = 0;
+    int peakLT = 0, peakRT = 0, bowActiveTicks = 0;
     for (DWORD t = 0; t <= 2000; t += kStepMs) {
         st.tickMs = 1000 + t;
         GpOnPadInput(0, 1000 + t, 200, 255);   
@@ -197,14 +204,16 @@ void RunBow(void) {
         GpHapticsOut o = {0, 0, 0, 0};
         GpTickHaptics(0, 1000 + t, FALSE, 0, 0, 0, 0, &o);
 
+        if (GpHapticsActive(0)) bowActiveTicks++;
         if ((int)o.leftTrigger  > peakLT) peakLT = o.leftTrigger;
         if ((int)o.rightTrigger > peakRT) peakRT = o.rightTrigger;
         if ((t % 250) == 0)
             GpConPrintf("  %5u   %4u  %4u  %4u  %4u\n", t, o.leftTrigger,
                         o.rightTrigger, o.leftMotor, o.rightMotor);
     }
-    GpConPrintf("  ---- 两侧峰值 LT=%d RT=%d（应当接近相等且随时间爬升）\n\n",
+    GpConPrintf("  ---- 两侧峰值 LT=%d RT=%d（应当接近相等且随时间爬升）\n",
                 peakLT, peakRT);
+    GpConPrintf("  ---- 引擎认为有合成内容的帧数 %d（必须 > 0）\n", bowActiveTicks);
 }
 
 
