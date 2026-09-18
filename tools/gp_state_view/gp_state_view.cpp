@@ -102,10 +102,22 @@ int main(int argc, char** argv) {
 
         DWORD age = (DWORD)(GetTickCount() - s.tickMs);
         printf("========== gpxinput 游戏状态 ==========\n");
+        if (s.frame == 0 || s.tickMs == 0) {
+            
+
+            printf("  心跳     组件已建段，但还没有发布任何一帧\n");
+            printf("           多半是游戏还在主菜单/加载中（玩家的 ped 还是 0）；\n");
+            printf("           进到世界里会自动开始。若一直如此，就看游戏目录的\n");
+            printf("           gpxinput_rdr2.log 里有没有「脚本线程已启动」那一行。\n");
+            printf("  写入进程 pid=%u   玩家 ped=%u\n", s.writerPid, s.playerPed);
+            if (!once) { Sleep(200); continue; }
+            break;
+        }
         printf("  心跳     %u 帧   最后更新 %ums 前   %s\n",
                s.frame, age,
-               (s.tickMs && age <= GPRDR2_TIMEOUT_MS) ? "在线" : "已失效(代理会忽略)");
+               (age <= GPRDR2_TIMEOUT_MS) ? "在线" : "已失效(代理会忽略)");
         printf("  写入进程 pid=%u   玩家 ped=%u\n", s.writerPid, s.playerPed);
+        printf("--------------------------------------\n");
         printf("--------------------------------------\n");
         printf("  武器组   0x%08X  %s\n", s.weaponGroup, GroupName(s.weaponGroup));
         printf("  武器     0x%08X\n", s.weaponHash);

@@ -9,6 +9,10 @@
 
 namespace {
 
+BOOL g_tickSeen      = FALSE;
+BOOL g_outsideWorld  = FALSE;
+
+
 HMODULE       g_self       = nullptr;
 HANDLE        g_mapping    = nullptr;
 GpRdr2State*  g_state      = nullptr;
@@ -109,6 +113,13 @@ void Tick(void) {
         return;
     }
 
+    
+
+    if (!g_tickSeen) {
+        g_tickSeen = TRUE;
+        Log("脚本线程已启动（Tick 开始被调用）");
+    }
+
     int ped = (int)rdr2_call0(N_PLAYER_PED_ID);
 
     
@@ -120,9 +131,20 @@ void Tick(void) {
 
     
 
+
+
+
     if (ped == 0) {
+        if (!g_outsideWorld) {
+            g_outsideWorld = TRUE;
+            Log("玩家 ped=0（主菜单/加载中）—— 进世界后开始发布状态");
+        }
         sh::scriptWait(0);
         return;
+    }
+    if (g_outsideWorld) {
+        g_outsideWorld = FALSE;
+        Log("进入世界：ped=%d", ped);
     }
 
     uint32_t weapon    = CurrentWeapon(ped);
