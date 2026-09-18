@@ -290,6 +290,7 @@ void GpConfigLoad(GpProxyConfig* cfg) {
         h.shotTrigFloor    = ReadFloat(ini, L"Haptics", L"ShotTrigFloor", h.shotTrigFloor);
         h.shotTrigCeil     = ReadFloat(ini, L"Haptics", L"ShotTrigCeil", h.shotTrigCeil);
         h.shotDecayExp     = ReadFloat(ini, L"Haptics", L"ShotDecayExp", h.shotDecayExp);
+        h.shotEnvScale     = ReadFloat(ini, L"Haptics", L"ShotEnvScale", h.shotEnvScale);
         h.rideShotBoost    = ReadFloat(ini, L"Haptics", L"RideShotBoost", h.rideShotBoost);
         h.rideSpeedLow     = ReadFloat(ini, L"Haptics", L"RideSpeedLow", h.rideSpeedLow);
         h.rideSpeedHigh    = ReadFloat(ini, L"Haptics", L"RideSpeedHigh", h.rideSpeedHigh);

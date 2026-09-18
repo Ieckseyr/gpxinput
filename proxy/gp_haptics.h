@@ -104,6 +104,10 @@ struct GpHapticsSettings {
 
     
 
+    float shotEnvScale;
+
+    
+
 
 
     float shotTrigGain;

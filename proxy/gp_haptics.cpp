@@ -170,6 +170,15 @@ void FireShot(CtrlState* cs, DWORD now, float amp, const GpWeaponProfile* prof) 
         cs->shotBodyKick = g_s.shotBodyKick;
     }
     if (cs->shotEnvMs < 10) cs->shotEnvMs = 10;
+
+    
+
+    {
+        float sc = g_s.shotEnvScale > 0.0f ? g_s.shotEnvScale : 1.0f;
+        cs->shotEnvMs = (int)((float)cs->shotEnvMs * sc);
+        if (cs->shotEnvMs < 20) cs->shotEnvMs = 20;
+        if (cs->shotEnvMs > 900) cs->shotEnvMs = 900;
+    }
 }
 
 CtrlState* State(uint32_t controller) {
@@ -282,7 +291,8 @@ void GpDefaultHapticsSettings(GpHapticsSettings* s) {
     s->shotTrigGain     = 1.10f;
     s->shotTrigFloor    = 90.0f;
     s->shotTrigCeil     = 130.0f;   
-    s->shotDecayExp     = 1.20f;   
+    s->shotDecayExp     = 1.20f;
+    s->shotEnvScale     = 1.80f;   
     s->shotGain         = 1.0f;
     s->shotEnvMs        = 90;
     s->shotRefractoryMs = 55;
@@ -425,6 +435,8 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
     if (g_s.shotTrigCeil < g_s.shotTrigFloor) g_s.shotTrigCeil = g_s.shotTrigFloor;
     if (g_s.shotBodyScale < 0.0f) g_s.shotBodyScale = 0.0f;
     if (g_s.shotBodyScale > 2.0f) g_s.shotBodyScale = 2.0f;
+    if (g_s.shotEnvScale < 0.2f) g_s.shotEnvScale = 0.2f;
+    if (g_s.shotEnvScale > 5.0f) g_s.shotEnvScale = 5.0f;
     if (g_s.shotDecayExp < 0.3f) g_s.shotDecayExp = 0.3f;
     if (g_s.shotDecayExp > 4.0f) g_s.shotDecayExp = 4.0f;
     if (g_s.reloadGain < 0.0f) g_s.reloadGain = 0.0f;
