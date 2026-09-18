@@ -50,6 +50,20 @@ struct CtrlState {
     uint32_t lastWeapon;    
     int32_t  lastAmmo;
     BOOL     wasShooting;
+    uint8_t  menuActive;    
+    uint8_t  armed;         
+
+    
+    BOOL     ltDown;
+    DWORD    ltDownTick;
+    DWORD    aimStart;
+
+    
+    BOOL     auxActive;
+    DWORD    auxStart;
+    float    auxAmp;
+    int      auxEnvMs;
+    int      auxSide;
 
     
     DWORD peakTick[kPeakHistory];
@@ -100,6 +114,16 @@ const GpWeaponProfile* FindProfile(uint32_t group) {
         if (g_s.weapon[i].hash != 0 && g_s.weapon[i].hash == group) return &g_s.weapon[i];
     }
     return nullptr;
+}
+
+
+
+void FireAux(CtrlState* cs, DWORD now, float amp, int envMs, int side) {
+    cs->auxActive = TRUE;
+    cs->auxStart  = now;
+    cs->auxAmp    = Clamp01(amp);
+    cs->auxEnvMs  = envMs < 10 ? 10 : envMs;
+    cs->auxSide   = side;
 }
 
 
@@ -236,6 +260,14 @@ void GpDefaultHapticsSettings(GpHapticsSettings* s) {
     s->useGameState = TRUE;
     s->aimBreathHz  = 0.4f;   
     s->aimTriggerLevel = 0.24f;  
+    s->aimHoldMs       = 300;    
+    s->aimRampMs       = 3500.0f; 
+
+    s->aimRampGain     = 0.80f;  
+    s->tickGain        = 0.35f;  
+    s->tickEnvMs       = 45;
+    s->drawGain        = 0.55f;  
+    s->drawEnvMs       = 80;
 
     
 
@@ -293,6 +325,13 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
 
     if (g_s.aimTriggerLevel < 0.05f) g_s.aimTriggerLevel = 0.05f;
     if (g_s.aimTriggerLevel > 0.9f) g_s.aimTriggerLevel = 0.9f;
+    if (g_s.aimHoldMs < 0) g_s.aimHoldMs = 0;
+    if (g_s.aimHoldMs > 2000) g_s.aimHoldMs = 2000;
+    if (g_s.aimRampMs < 100.0f) g_s.aimRampMs = 100.0f;
+    if (g_s.aimRampGain < 0.0f) g_s.aimRampGain = 0.0f;
+    if (g_s.aimRampGain > 3.0f) g_s.aimRampGain = 3.0f;
+    if (g_s.tickEnvMs < 10) g_s.tickEnvMs = 10;
+    if (g_s.drawEnvMs < 10) g_s.drawEnvMs = 10;
     if (g_s.aimBreathHz < 0.0f) g_s.aimBreathHz = 0.0f;
     if (g_s.aimBreathHz > 5.0f) g_s.aimBreathHz = 5.0f;
     if (g_s.weaponCount < 0) g_s.weaponCount = 0;
@@ -479,6 +518,22 @@ void GpOnPadInput(uint32_t controller, DWORD now, BYTE leftTrigger, BYTE rightTr
                      prof ? prof->name : "通用");
     }
 
+    
+
+    BYTE ltTh = (BYTE)(g_s.aimTriggerLevel * 255.0f + 0.5f);
+    BOOL ltNow = leftTrigger >= ltTh;
+    if (ltNow && !cs->ltDown) {
+        cs->ltDown = TRUE;
+        cs->ltDownTick = now;
+    } else if (!ltNow && cs->ltDown) {
+        DWORD held = now - cs->ltDownTick;
+        cs->ltDown = FALSE;
+        if (held < (DWORD)g_s.aimHoldMs && (cs->menuActive || !cs->armed)) {
+            FireAux(cs, now, g_s.tickGain, g_s.tickEnvMs, 2);
+            GP_LOG_DEBUG("haptics: LT 轻点 %ums -> 切换反馈", held);
+        }
+    }
+
     cs->prevLT = leftTrigger;
     cs->prevRT = rightTrigger;
 }
@@ -499,9 +554,18 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
         return;
     }
 
+    cs->menuActive = st->menuActive != 0;
+    cs->armed      = st->armed != 0;
+
     
 
     if (st->weaponHash != cs->lastWeapon) {
+        
+
+        if (st->weaponHash != 0) {
+            FireAux(cs, now, g_s.drawGain, g_s.drawEnvMs, 2);
+            GP_LOG_DEBUG("haptics: 武器变为 0x%08X -> 掏枪反馈", st->weaponHash);
+        }
         cs->lastWeapon  = st->weaponHash;
         cs->lastAmmo    = st->ammoInClip;
         cs->wasShooting = st->shooting != 0;
@@ -562,6 +626,8 @@ void GpHapticsGetStatus(uint32_t controller, DWORD now, GpHapticsStatus* out) {
     }
     out->stateValid  = cs->stateValid ? 1 : 0;
     out->weaponGroup = cs->stateGroup;
+    out->menuActive  = cs->menuActive;
+    out->armed       = cs->armed;
     out->aiming = (uint8_t)(cs->stateValid &&
                   (cs->aiming || cs->padLT >= (BYTE)(g_s.aimTriggerLevel * 255.0f + 0.5f))) ? 1 : 0;
 
@@ -582,6 +648,7 @@ BOOL GpHapticsActive(uint32_t controller) {
     DWORD now = GetTickCount();
     if (cs->shotActive && (DWORD)(now - cs->shotStart) < (DWORD)g_s.shotEnvMs) return TRUE;
     if (g_s.rideEnable && now < cs->rideUntil) return TRUE;
+    if (cs->auxActive) return TRUE;
     return FALSE;
 }
 
@@ -663,23 +730,59 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
 
 
 
-    BOOL aimingNow = cs->stateValid &&
-                     (cs->aiming || cs->padLT >= (BYTE)(g_s.aimTriggerLevel * 255.0f + 0.5f));
+    
+
+
+
+
+    DWORD holdMs = cs->ltDown ? (DWORD)(now - cs->ltDownTick) : 0;
+    BOOL aimingNow = cs->stateValid && !cs->menuActive &&
+                     (cs->aiming ||
+                      (cs->armed && cs->ltDown && holdMs >= (DWORD)g_s.aimHoldMs));
     if (g_s.useGameState && aimingNow) {
         const GpWeaponProfile* prof = FindProfile(cs->stateGroup);
         if (prof && (prof->aimTrig > 0.0f || prof->aimBody > 0.0f)) {
-            float w = 1.0f;
+            
+
+            if (cs->aimStart == 0) cs->aimStart = now;
+            float ramp = 1.0f;
+            if (g_s.aimRampGain > 0.0f) {
+                float t = (float)(now - cs->aimStart) / g_s.aimRampMs;
+                if (t > 1.0f) t = 1.0f;
+                ramp = 1.0f + t * g_s.aimRampGain;
+            }
+
+            float w = ramp;
             if (g_s.aimBreathHz > 0.01f && prof->aimWobble > 0.0f) {
                 
 
                 float secs = (float)now / 1000.0f;
-                w = 1.0f - prof->aimWobble * 0.5f *
+                w *= 1.0f - prof->aimWobble * 0.5f *
                             (1.0f - cosf(6.2831853f * g_s.aimBreathHz * secs));
             }
             addTrigL += prof->aimTrig * 255.0f * w;
             addTrigR += prof->aimTrig * 255.0f * w;
             addBodyL += prof->aimBody * 255.0f * w;
             addBodyR += prof->aimBody * 255.0f * w;
+        }
+    } else {
+        
+        cs->aimStart = 0;
+    }
+
+    
+    if (cs->auxActive) {
+        DWORD t = now - cs->auxStart;
+        if (t < (DWORD)cs->auxEnvMs) {
+            float x = (float)t / (float)cs->auxEnvMs;
+            float env = powf(1.0f - x, 1.5f) * cs->auxAmp * 255.0f;
+            if (cs->auxSide == 1)      addTrigL += env;
+            else if (cs->auxSide == 2) { addTrigL += env; addTrigR += env; }
+            else                       addTrigR += env;
+            addBodyL += env * 0.25f;
+            addBodyR += env * 0.25f;
+        } else {
+            cs->auxActive = FALSE;
         }
     }
 

@@ -41,6 +41,8 @@ typedef struct GpMonController {
 
     uint8_t  stateValid;
     uint8_t  aiming;
+    uint8_t  menuActive;
+    uint8_t  armed;
     uint16_t pad1_;
     uint32_t weaponGroup;
 

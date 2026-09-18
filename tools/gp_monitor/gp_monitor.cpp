@@ -231,9 +231,11 @@ void Render(const GpMonBlock* blk, DWORD now, bool interactive) {
 
         
 
-        snprintf(line, sizeof(line), " 手柄 %u   武器组=0x%08X  瞄准=%s  状态=%s",
+        snprintf(line, sizeof(line), " 手柄 %u   武器组=0x%08X  瞄准=%s  持械=%s  菜单=%s  状态=%s",
                  c, mc.weaponGroup,
                  mc.aiming ? "是" : "否",
+                 mc.armed ? "是" : "否",
+                 mc.menuActive ? "是" : "否",
                  mc.stateValid ? "在线" : "离线");
         PutLine(line);
 

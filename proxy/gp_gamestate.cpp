@@ -73,6 +73,8 @@ bool Read(GpRdr2State* out) {
     
 
 
+    if (out->magic != GPRDR2_MAGIC || out->version != GPRDR2_VERSION) return false;
+
     DWORD now = GetTickCount();
     if (out->tickMs == 0 || (DWORD)(now - out->tickMs) > GPRDR2_TIMEOUT_MS) return false;
     if (out->playerPed == 0) return false;

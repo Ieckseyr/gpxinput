@@ -259,6 +259,11 @@ void MonitorPublish(uint32_t c, DWORD now, const MonSample* s) {
     GpHapticsStatus st;
     memset(&st, 0, sizeof(st));
     GpHapticsGetStatus(c, now, &st);
+    m->stateValid   = st.stateValid;
+    m->aiming       = st.aiming;
+    m->menuActive   = st.menuActive;
+    m->armed        = st.armed;
+    m->weaponGroup  = st.weaponGroup;
     m->shotActive   = st.shotActive;
     m->shotRemainMs = st.shotRemainMs;
     m->rideActive   = st.rideActive;

@@ -115,6 +115,8 @@ void Tick(void) {
     g_state->seq++;                 
     MemoryBarrier();
 
+    g_state->magic         = GPRDR2_MAGIC;
+    g_state->version       = GPRDR2_VERSION;
     g_state->tickMs        = GetTickCount();
     g_state->frame         = ++g_frame;
     g_state->writerPid     = GetCurrentProcessId();
@@ -132,6 +134,8 @@ void Tick(void) {
     g_state->onFoot    = (uint8_t)(rdr2_call1(N_IS_PED_ON_FOOT, (uint64_t)(int64_t)ped) != 0);
     g_state->onMount   = (uint8_t)(mount != 0);
     g_state->inVehicle = (uint8_t)(rdr2_call2(N_IS_PED_IN_ANY_VEHICLE, (uint64_t)(int64_t)ped, 0) != 0);
+    g_state->menuActive = (uint8_t)(rdr2_call0(N_IS_PAUSE_MENU_ACTIVE) != 0);
+    g_state->armed      = (uint8_t)(rdr2_call2(N_IS_PED_ARMED, (uint64_t)(int64_t)ped, 1) != 0);
 
     g_state->horseSpeed  = horseSpeed;
     g_state->playerSpeed = 0.0f;

@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 #define GPRDR2_MAGIC   0x52533231u   
-#define GPRDR2_VERSION 1u
+#define GPRDR2_VERSION 2u
 #define GPRDR2_NAME    L"Local\\GpRdr2State_v1"
 
 
@@ -33,6 +33,11 @@ extern "C" {
 
 typedef struct GpRdr2State {
     
+
+    uint32_t magic;
+    uint32_t version;
+
+    
     volatile uint32_t seq;
 
     uint32_t tickMs;          
@@ -50,6 +55,8 @@ typedef struct GpRdr2State {
     uint8_t  aiming;          
     uint8_t  reloading;       
     uint8_t  onFoot;
+    uint8_t  menuActive;      
+    uint8_t  armed;           
     uint8_t  onMount;         
     uint8_t  inVehicle;
     uint8_t  pad0, pad1;
