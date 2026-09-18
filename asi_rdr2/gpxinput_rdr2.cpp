@@ -88,10 +88,16 @@ bool OpenState(void) {
 
 uint32_t CurrentWeapon(int ped) {
     uint32_t hash = 0;
+    
+
+
+
     sh::nativeInit(N_GET_CURRENT_PED_WEAPON);
     sh::nativePush64((uint64_t)(int64_t)ped);
     sh::nativePush64((uint64_t)(uintptr_t)&hash);
-    sh::nativePush64((uint64_t)0);
+    sh::nativePush64(0);            
+    sh::nativePush64(0);            
+    sh::nativePush64(0);            
     sh::nativeCall();
     return hash;
 }
@@ -126,10 +132,15 @@ const char* GroupName(uint32_t h) {
 BOOL ReadAmmo(int ped, uint32_t weapon, int* out) {
     if (g_ammoFaults >= 3) return FALSE;
 
+    
+
+
     BOOL ok = TRUE;
     __try {
-        *out = (int)rdr2_call3(N_GET_AMMO_IN_CLIP, (uint64_t)(int64_t)ped,
-                               (uint64_t)weapon, 0);
+        int ammo = 0;
+        rdr2_call3(N_GET_AMMO_IN_CLIP, (uint64_t)(int64_t)ped,
+                   (uint64_t)weapon, (uint64_t)(uintptr_t)&ammo);
+        *out = ammo;
     } __except (EXCEPTION_EXECUTE_HANDLER) {
         ok = FALSE;
     }
