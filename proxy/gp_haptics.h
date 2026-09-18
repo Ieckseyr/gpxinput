@@ -93,6 +93,11 @@ struct GpHapticsSettings {
     
     float aimBreathHz;
 
+    
+
+
+    float aimTriggerLevel;
+
     GpWeaponProfile weapon[GP_WEAPON_SLOTS];
     int             weaponCount;
 };
@@ -144,6 +149,9 @@ typedef struct GpHapticsStatus {
     uint8_t  rideActive;
     uint16_t ridePeriodMs;
     uint8_t  rideAmp;        
+    uint8_t  stateValid;     
+    uint8_t  aiming;         
+    uint32_t weaponGroup;    
 } GpHapticsStatus;
 
 void GpHapticsGetStatus(uint32_t controller, DWORD now, GpHapticsStatus* out);

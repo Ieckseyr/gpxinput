@@ -238,6 +238,7 @@ void GpConfigLoad(GpProxyConfig* cfg) {
         
         h.useGameState = ReadBool(ini, L"Haptics", L"UseGameState", h.useGameState);
         h.aimBreathHz  = ReadFloat(ini, L"Haptics", L"AimBreathHz", h.aimBreathHz);
+        h.aimTriggerLevel = ReadFloat(ini, L"Haptics", L"AimTriggerLevel", h.aimTriggerLevel);
 
         
 

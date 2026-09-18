@@ -125,7 +125,9 @@ void Tick(void) {
     g_state->timeSinceShot = sinceShot;
 
     g_state->shooting  = (uint8_t)(rdr2_call1(N_IS_PED_SHOOTING, (uint64_t)(int64_t)ped) != 0);
-    g_state->aiming    = (uint8_t)(rdr2_call0(N_IS_PLAYER_FREE_AIMING) != 0);
+    
+
+    g_state->aiming    = (uint8_t)(rdr2_call1(N_IS_PLAYER_FREE_AIMING, 0) != 0);
     g_state->reloading = (uint8_t)(rdr2_call1(N_IS_PED_RELOADING, (uint64_t)(int64_t)ped) != 0);
     g_state->onFoot    = (uint8_t)(rdr2_call1(N_IS_PED_ON_FOOT, (uint64_t)(int64_t)ped) != 0);
     g_state->onMount   = (uint8_t)(mount != 0);

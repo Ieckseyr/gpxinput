@@ -220,9 +220,10 @@ void Render(const GpMonBlock* blk, DWORD now, bool interactive) {
 
         if (compact) {
             snprintf(line, sizeof(line),
-                     " #%u 游戏 L%3u/R%3u 输出 L%3u/R%3u 扳机 %u/%u 输入 %u/%u | %s%s",
+                     " #%u 游戏 L%3u/R%3u 输出 L%3u/R%3u 扳机 %u/%u 输入 %u/%u 组=%08X 瞄=%u | %s%s",
                      c, mc.gameLM, mc.gameRM, mc.outLM, mc.outRM,
-                     mc.outLT, mc.outRT, mc.padLT, mc.padRT, synth,
+                     mc.outLT, mc.outRT, mc.padLT, mc.padRT, mc.weaponGroup,
+                     (unsigned)mc.aiming, synth,
                      stuckWarn ? " [!]卡震" : "");
             PutLine(line);
             continue;
@@ -230,7 +231,10 @@ void Render(const GpMonBlock* blk, DWORD now, bool interactive) {
 
         
 
-        snprintf(line, sizeof(line), " 手柄 %u   (累计输出 %u 次)", c, mc.outCount);
+        snprintf(line, sizeof(line), " 手柄 %u   武器组=0x%08X  瞄准=%s  状态=%s",
+                 c, mc.weaponGroup,
+                 mc.aiming ? "是" : "否",
+                 mc.stateValid ? "在线" : "离线");
         PutLine(line);
 
         Bar(b1, 12, mc.gameLM);

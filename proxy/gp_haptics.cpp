@@ -235,6 +235,7 @@ void GpDefaultHapticsSettings(GpHapticsSettings* s) {
     
     s->useGameState = TRUE;
     s->aimBreathHz  = 0.4f;   
+    s->aimTriggerLevel = 0.24f;  
 
     
 
@@ -290,6 +291,8 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
     if (g_s.rideHoldMs < 0) g_s.rideHoldMs = 0;
     if (g_s.rideHoldMs > 10000) g_s.rideHoldMs = 10000;
 
+    if (g_s.aimTriggerLevel < 0.05f) g_s.aimTriggerLevel = 0.05f;
+    if (g_s.aimTriggerLevel > 0.9f) g_s.aimTriggerLevel = 0.9f;
     if (g_s.aimBreathHz < 0.0f) g_s.aimBreathHz = 0.0f;
     if (g_s.aimBreathHz > 5.0f) g_s.aimBreathHz = 5.0f;
     if (g_s.weaponCount < 0) g_s.weaponCount = 0;
@@ -557,6 +560,11 @@ void GpHapticsGetStatus(uint32_t controller, DWORD now, GpHapticsStatus* out) {
             out->shotRemainMs = (uint16_t)((DWORD)g_s.shotEnvMs - t);
         }
     }
+    out->stateValid  = cs->stateValid ? 1 : 0;
+    out->weaponGroup = cs->stateGroup;
+    out->aiming = (uint8_t)(cs->stateValid &&
+                  (cs->aiming || cs->padLT >= (BYTE)(g_s.aimTriggerLevel * 255.0f + 0.5f))) ? 1 : 0;
+
     if (g_s.rideEnable && now < cs->rideUntil) {
         out->rideActive = 1;
         out->ridePeriodMs = (uint16_t)(g_ridePeriod[controller] > 0xFFFF
@@ -608,13 +616,19 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
             float decay = powf(1.0f - x, 1.2f);
             float env = attack * decay * cs->shotAmp;
 
+            
+
+
+
+            float env255 = env * 255.0f;
+
             switch (g_s.shotSide) {
-            case 1:  addTrigL += env; break;
-            case 2:  addTrigL += env; addTrigR += env; break;
-            default: addTrigR += env; break;
+            case 1:  addTrigL += env255; break;
+            case 2:  addTrigL += env255; addTrigR += env255; break;
+            default: addTrigR += env255; break;
             }
-            addBodyL += env * cs->shotBodyKick;
-            addBodyR += env * cs->shotBodyKick;
+            addBodyL += env255 * cs->shotBodyKick;
+            addBodyR += env255 * cs->shotBodyKick;
         } else {
             cs->shotActive = FALSE;
         }
@@ -647,7 +661,11 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
 
 
 
-    if (g_s.useGameState && cs->stateValid && cs->aiming) {
+
+
+    BOOL aimingNow = cs->stateValid &&
+                     (cs->aiming || cs->padLT >= (BYTE)(g_s.aimTriggerLevel * 255.0f + 0.5f));
+    if (g_s.useGameState && aimingNow) {
         const GpWeaponProfile* prof = FindProfile(cs->stateGroup);
         if (prof && (prof->aimTrig > 0.0f || prof->aimBody > 0.0f)) {
             float w = 1.0f;
