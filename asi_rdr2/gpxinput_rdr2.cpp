@@ -9,16 +9,18 @@
 
 namespace {
 
-HANDLE      g_mapping = nullptr;
-GpRdr2State* g_state  = nullptr;
-uint32_t    g_frame   = 0;
-bool        g_disabled = false;
-char        g_logPath[MAX_PATH] = {0};
-
+HMODULE       g_self       = nullptr;
+HANDLE        g_mapping    = nullptr;
+GpRdr2State*  g_state      = nullptr;
+uint32_t      g_frame      = 0;
+volatile LONG g_registered = 0;      
+volatile LONG g_disabled   = 0;
+BOOL          g_checked    = FALSE;  
+int           g_bootFrames = 0;
+char          g_logPath[MAX_PATH] = {0};
 
 void Log(const char* fmt, ...) {
     if (!g_logPath[0]) {
-        
         GetModuleFileNameA(nullptr, g_logPath, MAX_PATH);
         char* slash = strrchr(g_logPath, '\\');
         if (slash) slash[1] = 0;
@@ -38,6 +40,8 @@ void Log(const char* fmt, ...) {
 }
 
 bool OpenState(void) {
+    if (g_state) return true;
+
     HANDLE h = OpenFileMappingW(FILE_MAP_READ | FILE_MAP_WRITE, FALSE, GPRDR2_NAME);
     bool created = false;
     if (!h) {
@@ -60,10 +64,9 @@ bool OpenState(void) {
 
     if (created) {
         memset(g_state, 0, sizeof(GpRdr2State));
+        g_state->magic   = GPRDR2_MAGIC;
+        g_state->version = GPRDR2_VERSION;
         g_state->writerPid = GetCurrentProcessId();
-        g_state->seq = 0;
-    } else {
-        Log("状态段已存在，接手写入（pid=%u）", g_state->writerPid);
     }
     Log("状态段就绪（%s）", created ? "本进程创建" : "接手已有");
     return true;
@@ -81,13 +84,21 @@ uint32_t CurrentWeapon(int ped) {
     return hash;
 }
 
+
 void Tick(void) {
-    if (g_disabled) {
+    if (InterlockedCompareExchange(&g_disabled, 1, 1) == 1) {
         sh::scriptWait(500);
         return;
     }
 
     int ped = (int)rdr2_call0(N_PLAYER_PED_ID);
+
+    
+
+    if (!g_checked && ped != 0) {
+        g_checked = TRUE;
+        Log("自检通过：playerPed=%d，开始发布游戏状态", ped);
+    }
 
     
 
@@ -145,43 +156,58 @@ void Tick(void) {
     MemoryBarrier();
     g_state->seq++;                 
 
-    sh::scriptWait(0);                  
+    ++g_bootFrames;
+    if (g_bootFrames == 120) {
+        
+        Log("状态样本：武器=0x%08X 组=0x%08X 弹匣=%d 瞄准=%u 持械=%u 菜单=%u 骑马=%u",
+            weapon, group, ammo, g_state->aiming, g_state->armed,
+            g_state->menuActive, g_state->onMount);
+    }
+
+    sh::scriptWait(0);              
+}
+
+
+
+
+
+DWORD WINAPI BootThread(LPVOID) {
+    for (int i = 0; i < 600; ++i) {          
+        if (sh::Resolve()) {
+            if (InterlockedCompareExchange(&g_registered, 1, 0) != 0) return 0;
+            OpenState();
+            sh::scriptRegister(g_self, Tick);
+            Log("已向 ScriptHookRDR2 注册脚本（等待 %d ms）", i * 100);
+            return 0;
+        }
+        Sleep(100);
+    }
+    Log("等待 ScriptHookRDR2 超时（60 秒）—— 脚本未注册，代理会退回只看扳机");
+    return 0;
 }
 
 }  
 
 
+
 extern "C" __declspec(dllexport) void ScriptMain(void) {
-    
-
     if (!sh::Resolve()) {
-        Log("解析 ScriptHookRDR2 入口失败（脚本钩子不在？），脚本自禁用");
+        Log("ScriptMain 被调用，但解析 ScriptHookRDR2 入口失败");
         return;
     }
-    Log("ScriptHookRDR2 入口解析成功");
+    if (InterlockedCompareExchange(&g_registered, 1, 0) != 0) return;
+    OpenState();
+    sh::scriptRegister(g_self, Tick);
+    Log("ScriptMain 路径注册成功");
+}
 
-    if (!OpenState()) {
-        g_disabled = true;
-        Log("状态段不可用，脚本自禁用（代理会退回只看扳机）");
-        return;
+BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
+    if (reason == DLL_PROCESS_ATTACH) {
+        g_self = module;
+        DisableThreadLibraryCalls(module);
+        
+        HANDLE t = CreateThread(nullptr, 0, BootThread, nullptr, 0, NULL);
+        if (t) CloseHandle(t);
     }
-    Log("gpxinput_rdr2 启动：每帧发布游戏状态");
-
-    
-
-    for (int i = 0; i < 600; ++i) {
-        int ped = (int)rdr2_call0(N_PLAYER_PED_ID);
-        if (ped != 0) {
-            Log("自检通过：playerPed=%d", ped);
-            break;
-        }
-        if (i == 599) {
-            Log("自检失败：拿不到 playerPed，脚本自禁用");
-            g_disabled = true;
-            return;
-        }
-        sh::scriptWait(16);
-    }
-
-    for (;;) Tick();
+    return TRUE;
 }
