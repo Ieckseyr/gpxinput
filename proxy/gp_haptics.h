@@ -100,7 +100,15 @@ struct GpHapticsSettings {
     float shotTrigL, shotTrigR, shotBodyL, shotBodyR;
     int   shotAttackMs;
     float shotBodyScale;
-    float shotDecayExp;        
+    float shotDecayExp;
+
+    
+
+
+
+    float shotTrigGain;
+    float shotTrigFloor;
+    float shotTrigCeil;        
     
 
 

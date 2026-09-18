@@ -176,7 +176,7 @@ void RunAim(void) {
 void RunBow(void) {
     GpResetHaptics();
     GpConPrintf("\n==== 拉弓（弓，RT 按住 2 秒）====\n");
-    GpConPrintf("  t(ms)   出LT  出RT   出L   出R   （期望：两侧一起爬升）\n");
+    GpConPrintf("  t(ms)   出LT  出RT   出L   出R   （瞄准标志=false，仍应两侧爬升）\n");
 
     GpRdr2State st;
     memset(&st, 0, sizeof(st));
@@ -185,7 +185,7 @@ void RunBow(void) {
     st.weaponHash  = 0x88A8505C;              
     st.weaponGroup = GPRDR2_GRP_BOW;
     st.armed       = 1;
-    st.aiming      = 1;
+    st.aiming      = 0;   
     st.onFoot      = 1;
 
     int peakLT = 0, peakRT = 0;

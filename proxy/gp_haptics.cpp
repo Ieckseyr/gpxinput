@@ -277,7 +277,10 @@ void GpDefaultHapticsSettings(GpHapticsSettings* s) {
     s->driveLeftTrigger = TRUE;
     s->driveRightTrigger= TRUE;
     s->shotReplaceGame  = TRUE;
-    s->shotBodyScale    = 0.60f;   
+    s->shotBodyScale    = 0.60f;
+    s->shotTrigGain     = 1.10f;
+    s->shotTrigFloor    = 90.0f;
+    s->shotTrigCeil     = 130.0f;   
     s->shotDecayExp     = 1.20f;   
     s->shotGain         = 1.0f;
     s->shotEnvMs        = 90;
@@ -413,6 +416,11 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
     if (g_s.bowDrawGain > 1.0f) g_s.bowDrawGain = 1.0f;
     if (g_s.bowDrawRampMs < 100) g_s.bowDrawRampMs = 100;
     if (g_s.bowDrawRampMs > 5000) g_s.bowDrawRampMs = 5000;
+    if (g_s.shotTrigGain < 0.0f) g_s.shotTrigGain = 0.0f;
+    if (g_s.shotTrigGain > 2.0f) g_s.shotTrigGain = 2.0f;
+    if (g_s.shotTrigFloor < 0.0f) g_s.shotTrigFloor = 0.0f;
+    if (g_s.shotTrigCeil > 255.0f) g_s.shotTrigCeil = 255.0f;
+    if (g_s.shotTrigCeil < g_s.shotTrigFloor) g_s.shotTrigCeil = g_s.shotTrigFloor;
     if (g_s.shotBodyScale < 0.0f) g_s.shotBodyScale = 0.0f;
     if (g_s.shotBodyScale > 2.0f) g_s.shotBodyScale = 2.0f;
     if (g_s.shotDecayExp < 0.3f) g_s.shotDecayExp = 0.3f;
@@ -872,10 +880,17 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
             
 
 
-            addTrigL += cs->shotTrigL * env;
-            addTrigR += cs->shotTrigR * env;
-            addBodyL += cs->shotBodyL * env * g_s.shotBodyScale;
-            addBodyR += cs->shotBodyR * env * g_s.shotBodyScale;
+            
+
+            float g = g_s.shotTrigGain > 0.0f ? g_s.shotTrigGain : 1.0f;
+            float rtv = cs->shotTrigR * g;
+            if (rtv < g_s.shotTrigFloor) rtv = g_s.shotTrigFloor;
+            if (rtv > g_s.shotTrigCeil)  rtv = g_s.shotTrigCeil;
+
+            addTrigL += cs->shotTrigL * env * g;
+            addTrigR += rtv * env;
+            addBodyL += cs->shotBodyL * env * g_s.shotBodyScale * g;
+            addBodyR += cs->shotBodyR * env * g_s.shotBodyScale * g;
         } else {
             cs->shotActive = FALSE;
         }
@@ -886,7 +901,10 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
 
 
 
-    if (g_s.bowDrawGain > 0.0f && cs->stateValid && cs->aiming &&
+    
+
+
+    if (g_s.bowDrawGain > 0.0f && cs->stateValid &&
         cs->stateGroup == GPRDR2_GRP_BOW && cs->padRT > 40) {
         if (cs->bowDrawStart == 0) {
             cs->bowDrawStart = now;
