@@ -310,6 +310,8 @@ void GpConfigLoad(GpProxyConfig* cfg) {
         h.tickGain        = ReadFloat(ini, L"Haptics", L"TickGain", h.tickGain);
         h.tickEnvMs       = ReadInt(ini, L"Haptics", L"TickEnvMs", h.tickEnvMs);
         h.drawGain        = ReadFloat(ini, L"Haptics", L"DrawGain", h.drawGain);
+        h.bowDrawGain      = ReadFloat(ini, L"Haptics", L"BowDrawGain", h.bowDrawGain);
+        h.bowDrawRampMs    = ReadInt(ini, L"Haptics", L"BowDrawRampMs", h.bowDrawRampMs);
         h.reloadGain       = ReadFloat(ini, L"Haptics", L"ReloadGain", h.reloadGain);
         h.reloadEnvMs      = ReadInt(ini, L"Haptics", L"ReloadEnvMs", h.reloadEnvMs);
         h.reloadSide       = ReadInt(ini, L"Haptics", L"ReloadSide", h.reloadSide);

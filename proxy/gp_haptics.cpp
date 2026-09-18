@@ -73,7 +73,8 @@ struct CtrlState {
     float rideAmp;
     DWORD rideUntil;
     
-    BOOL  wasReloading;    
+    BOOL  wasReloading;
+    DWORD bowDrawStart;       
     BOOL  stateSeenOnce;   
     BOOL  onMount;
     float horseSpeed;
@@ -300,6 +301,8 @@ void GpDefaultHapticsSettings(GpHapticsSettings* s) {
     s->ltPressEnable   = FALSE;
     s->ltPressGain     = 0.55f;  
     s->ltPressEnvMs    = 90;
+    s->bowDrawGain     = 0.28f;
+    s->bowDrawRampMs   = 1100;
     s->reloadGain      = 0.0f;   
     s->reloadEnvMs     = 70;
     s->reloadSide      = 2;
@@ -382,6 +385,10 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
     if (g_s.aimRampGain > 3.0f) g_s.aimRampGain = 3.0f;
     if (g_s.tickEnvMs < 10) g_s.tickEnvMs = 10;
     if (g_s.drawEnvMs < 10) g_s.drawEnvMs = 10;
+    if (g_s.bowDrawGain < 0.0f) g_s.bowDrawGain = 0.0f;
+    if (g_s.bowDrawGain > 1.0f) g_s.bowDrawGain = 1.0f;
+    if (g_s.bowDrawRampMs < 100) g_s.bowDrawRampMs = 100;
+    if (g_s.bowDrawRampMs > 5000) g_s.bowDrawRampMs = 5000;
     if (g_s.reloadGain < 0.0f) g_s.reloadGain = 0.0f;
     if (g_s.reloadEnvMs < 10) g_s.reloadEnvMs = 10;
     if (g_s.reloadEnvMs > 500) g_s.reloadEnvMs = 500;
@@ -666,6 +673,25 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
     if (st->weaponHash != cs->lastWeapon) {
         
 
+        {
+            const GpWeaponProfile* gp = nullptr;
+            for (int i = 0; i < g_s.gunCount && i < GP_GUN_SLOTS; ++i) {
+                if (g_s.gun[i].hash == st->weaponHash && g_s.gun[i].hash != 0) {
+                    gp = &g_s.gun[i];
+                    break;
+                }
+            }
+            if (gp) {
+                GP_LOG_INFO("haptics: 换枪 0x%08X -> 「%s」（具体枪械档）",
+                            st->weaponHash, gp->name);
+            } else {
+                GP_LOG_INFO("haptics: 换枪 0x%08X -> 未登记（组 0x%08X），"
+                            "用武器组参数；想单独调就把它加进 [Gun*]",
+                            st->weaponHash, st->weaponGroup);
+            }
+        }
+        
+
         if (st->weaponHash != 0) {
             GpFireEffect(controller, GP_FX_DRAW, g_s.drawGain, g_s.drawEnvMs, 2);
             GP_LOG_DEBUG("haptics: 武器变为 0x%08X -> 掏枪反馈", st->weaponHash);
@@ -803,6 +829,31 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
         } else {
             cs->shotActive = FALSE;
         }
+    }
+
+    
+
+
+
+
+    if (g_s.bowDrawGain > 0.0f && cs->stateValid && cs->aiming &&
+        cs->stateGroup == GPRDR2_GRP_BOW && cs->padRT > 40) {
+        if (cs->bowDrawStart == 0) {
+            cs->bowDrawStart = now;
+            GP_LOG_DEBUG("haptics: 开始拉弓 -> 两侧扳机持续震动");
+        }
+        DWORD t = now - cs->bowDrawStart;
+        float k = (float)t / (float)g_s.bowDrawRampMs;
+        if (k > 1.0f) k = 1.0f;
+
+        float amp = g_s.bowDrawGain * k * 255.0f;
+        addTrigL += amp;
+        addTrigR += amp;
+        addBodyL += amp * 0.20f;
+        addBodyR += amp * 0.20f;
+    } else if (cs->bowDrawStart != 0) {
+        cs->bowDrawStart = 0;
+        GP_LOG_DEBUG("haptics: 松弦 / 收弓 —— 拉弓震动结束");
     }
 
     

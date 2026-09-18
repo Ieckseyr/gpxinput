@@ -172,6 +172,41 @@ void RunAim(void) {
                 ltMin, ltMax, bodyMin, bodyMax);
 }
 
+
+void RunBow(void) {
+    GpResetHaptics();
+    GpConPrintf("' + B + 'n==== 拉弓（弓，RT 按住 2 秒）====' + B + 'n");
+    GpConPrintf("  t(ms)   出LT  出RT   出L   出R   （期望：两侧一起爬升）' + B + 'n");
+
+    GpRdr2State st;
+    memset(&st, 0, sizeof(st));
+    st.magic       = GPRDR2_MAGIC;
+    st.version     = GPRDR2_VERSION;
+    st.weaponHash  = 0x88A8505C;              
+    st.weaponGroup = GPRDR2_GRP_BOW;
+    st.armed       = 1;
+    st.aiming      = 1;
+    st.onFoot      = 1;
+
+    int peakLT = 0, peakRT = 0;
+    for (DWORD t = 0; t <= 2000; t += kStepMs) {
+        st.tickMs = 1000 + t;
+        GpOnPadInput(0, 1000 + t, 200, 255);   
+        GpOnGameState(0, 1000 + t, TRUE, &st);
+
+        GpHapticsOut o = {0, 0, 0, 0};
+        GpTickHaptics(0, 1000 + t, FALSE, 0, 0, 0, 0, &o);
+
+        if ((int)o.leftTrigger  > peakLT) peakLT = o.leftTrigger;
+        if ((int)o.rightTrigger > peakRT) peakRT = o.rightTrigger;
+        if ((t % 250) == 0)
+            GpConPrintf("  %5u   %4u  %4u  %4u  %4u' + B + 'n", t, o.leftTrigger,
+                        o.rightTrigger, o.leftMotor, o.rightMotor);
+    }
+    GpConPrintf("  ---- 两侧峰值 LT=%d RT=%d（应当接近相等且随时间爬升）' + B + 'n' + B + 'n",
+                peakLT, peakRT);
+}
+
 }  
 
 int main(int argc, char** argv) {
@@ -236,6 +271,9 @@ int main(int argc, char** argv) {
 
     
     if (which[0] == 'a' || which[0] == 'm') RunAim();
+
+    
+    if (which[0] == 'a' || which[0] == 'w') RunBow();
 
     
     if (which[0] == 'a' || which[0] == 'r') RunRide();

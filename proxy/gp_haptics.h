@@ -10,7 +10,7 @@
 
 
 #define GP_WEAPON_SLOTS 8    
-#define GP_GUN_SLOTS   40    
+#define GP_GUN_SLOTS   96    
 
 
 
@@ -157,6 +157,12 @@ struct GpHapticsSettings {
     
     float tickGain;
     int   tickEnvMs;
+
+    
+
+
+    float bowDrawGain;
+    int   bowDrawRampMs;      
 
     
 
