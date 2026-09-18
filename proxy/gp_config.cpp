@@ -166,6 +166,11 @@ void GpConfigDefaults(GpProxyConfig* cfg) {
 
     cfg->monitorEnable    = TRUE;    
     cfg->monitorAutoStart = FALSE;   
+    cfg->debugMode            = FALSE;
+    cfg->debugMonitor         = TRUE;
+    cfg->debugStateView       = TRUE;
+    cfg->debugVerboseLog      = TRUE;
+    cfg->debugToolDir[0]      = 0;
     cfg->monitorExe[0]    = 0;
 }
 
@@ -223,6 +228,35 @@ void GpConfigLoad(GpProxyConfig* cfg) {
     
     cfg->monitorEnable    = ReadBool(ini, L"Proxy", L"MonitorEnable", cfg->monitorEnable);
     cfg->monitorAutoStart = ReadBool(ini, L"Proxy", L"MonitorAutoStart", cfg->monitorAutoStart);
+
+    
+
+    {
+        cfg->debugMode       = ReadBool(ini, L"Debug", L"Mode", cfg->debugMode);
+        cfg->debugMonitor    = ReadBool(ini, L"Debug", L"Monitor", cfg->debugMonitor);
+        cfg->debugStateView  = ReadBool(ini, L"Debug", L"StateView", cfg->debugStateView);
+        cfg->debugVerboseLog = ReadBool(ini, L"Debug", L"VerboseLog", cfg->debugVerboseLog);
+        ReadString(ini, L"Debug", L"ToolDir", L"", cfg->debugToolDir, MAX_PATH);
+
+        wchar_t flag[MAX_PATH] = {0};
+        wcsncpy_s(flag, MAX_PATH, ini, _TRUNCATE);
+        wchar_t* slash = wcsrchr(flag, L'\\');
+        if (slash) {
+            slash[1] = 0;
+            wcsncat_s(flag, MAX_PATH, L"gpxinput_debug.on", _TRUNCATE);
+            if (GetFileAttributesW(flag) != INVALID_FILE_ATTRIBUTES) {
+                cfg->debugMode = TRUE;
+                cfg->logLevel  = 4;      
+                GP_LOG_INFO("config: 调试模式来自 gpxinput_debug.on（与 ini 同目录）");
+            } else if (cfg->debugMode) {
+                GP_LOG_INFO("config: 调试模式来自 [Debug] Mode=true");
+            }
+        }
+
+        
+        if (cfg->debugMode && cfg->debugVerboseLog && cfg->logLevel < 3)
+            cfg->logLevel = 3;
+    }
     ReadString(ini, L"Proxy", L"MonitorExe", L"", cfg->monitorExe, MAX_PATH);
 
     

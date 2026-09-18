@@ -289,24 +289,34 @@ void MonitorPublish(uint32_t c, DWORD now, const MonSample* s) {
 
 
 
-void MonitorMaybeAutoStart(void) {
-    if (!g_cfg.monitorAutoStart) return;
 
+
+
+
+BOOL LaunchTool(const wchar_t* exeName, const char* label) {
     wchar_t exe[MAX_PATH] = {0};
-    if (g_cfg.monitorExe[0]) {
-        wcsncpy_s(exe, MAX_PATH, g_cfg.monitorExe, _TRUNCATE);
+
+    if (wcschr(exeName, L'\\')) {
+        wcsncpy_s(exe, MAX_PATH, exeName, _TRUNCATE);
     } else {
-        
-        wcsncpy_s(exe, MAX_PATH, gpreal::SelfPath(), _TRUNCATE);
-        wchar_t* slash = wcsrchr(exe, L'\\');
-        if (!slash) return;
-        slash[1] = 0;
-        wcsncat_s(exe, MAX_PATH, L"gp_monitor.exe", _TRUNCATE);
+        wchar_t dir[MAX_PATH] = {0};
+        if (g_cfg.debugToolDir[0]) {
+            wcsncpy_s(dir, MAX_PATH, g_cfg.debugToolDir, _TRUNCATE);
+        } else {
+            wcsncpy_s(dir, MAX_PATH, gpreal::SelfPath(), _TRUNCATE);
+            wchar_t* slash = wcsrchr(dir, L'\\');
+            if (!slash) return FALSE;
+            slash[1] = 0;
+        }
+        size_t n = wcslen(dir);
+        if (n && dir[n - 1] != L'\\') wcsncat_s(dir, MAX_PATH, L"\\", _TRUNCATE);
+        wcsncpy_s(exe, MAX_PATH, dir, _TRUNCATE);
+        wcsncat_s(exe, MAX_PATH, exeName, _TRUNCATE);
     }
 
     if (GetFileAttributesW(exe) == INVALID_FILE_ATTRIBUTES) {
-        GP_LOG_INFO("monitor: 监视器不在位（%s），跳过自动启动", gplog::W(exe));
-        return;
+        GP_LOG_INFO("%s: 不在位（%s），跳过", label, gplog::W(exe));
+        return FALSE;
     }
 
     wchar_t cmd[MAX_PATH + 8];
@@ -323,12 +333,29 @@ void MonitorMaybeAutoStart(void) {
     
     if (CreateProcessW(nullptr, cmd, nullptr, nullptr, FALSE, CREATE_NEW_CONSOLE,
                        nullptr, nullptr, &si, &pi)) {
-        GP_LOG_INFO("monitor: 已启动监视窗口 pid=%lu", pi.dwProcessId);
+        GP_LOG_INFO("%s: 已启动 pid=%lu（%s）", label, pi.dwProcessId, gplog::W(exe));
         CloseHandle(pi.hThread);
         CloseHandle(pi.hProcess);
-    } else {
-        GP_LOG_INFO("monitor: 启动监视器失败 (err=%lu)", GetLastError());
+        return TRUE;
     }
+    GP_LOG_INFO("%s: 启动失败 (err=%lu)", label, GetLastError());
+    return FALSE;
+}
+
+void MonitorMaybeAutoStart(void) {
+    if (!g_cfg.monitorAutoStart) return;
+    LaunchTool(g_cfg.monitorExe[0] ? g_cfg.monitorExe : L"gp_monitor.exe", "monitor");
+}
+
+
+
+
+
+void DebugMaybeAutoStart(void) {
+    if (!g_cfg.debugMode) return;
+    GP_LOG_INFO("debug: 调试模式开启（日志级别=%d）—— 拉起排查窗口", g_cfg.logLevel);
+    if (g_cfg.debugMonitor)   LaunchTool(L"gp_monitor.exe",    "debug/monitor");
+    if (g_cfg.debugStateView) LaunchTool(L"gp_state_view.exe", "debug/state");
 }
 
 
@@ -878,6 +905,7 @@ void Start(void) {
 
     gpgame::Attach();
     MonitorMaybeAutoStart();
+    DebugMaybeAutoStart();
 }
 
 void Stop(void) {

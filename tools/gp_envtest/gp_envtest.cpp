@@ -1,12 +1,17 @@
 // tool
 #include "gp_config.h"
 #include "gp_haptics.h"
+#include "gp_text.h"
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 namespace {
 
 const DWORD kStepMs = 8;      
+
+const char* OnOff(BOOL v) { return v ? "开" : "关"; }
 
 void PrintHeader(const char* title) {
     printf("\n==== %s ====\n", title);
@@ -23,13 +28,13 @@ void PrintRow(DWORD t, int ltIn, int rtIn, const GpHapticsOut& o) {
 
 
 void RunLine(const char* title, int isLT, DWORD pressAt, BYTE depth, DWORD holdMs,
-             DWORD totalMs, DWORD printFrom, DWORD printTo) {
+             DWORD totalMs, DWORD from, DWORD to) {
     GpResetHaptics();
     PrintHeader(title);
 
     DWORD lt = 0, rt = 0;
     unsigned peakLT = 0, peakRT = 0, peakL = 0, peakR = 0;
-    DWORD firstNonZero = 0, lastNonZero = 0;
+    DWORD firstNZ = 0, lastNZ = 0;
 
     for (DWORD t = 0; t <= totalMs; t += kStepMs) {
         BOOL down = (t >= pressAt && t < pressAt + holdMs);
@@ -46,19 +51,19 @@ void RunLine(const char* title, int isLT, DWORD pressAt, BYTE depth, DWORD holdM
         if (o.leftMotor    > peakL)  peakL  = o.leftMotor;
         if (o.rightMotor   > peakR)  peakR  = o.rightMotor;
 
-        unsigned any = o.leftTrigger + o.rightTrigger + o.leftMotor + o.rightMotor;
-        if (any) {
-            if (!firstNonZero) firstNonZero = t;
-            lastNonZero = t;
+        if (o.leftTrigger + o.rightTrigger + o.leftMotor + o.rightMotor) {
+            if (!firstNZ) firstNZ = t;
+            lastNZ = t;
         }
-        if (t >= printFrom && t <= printTo) PrintRow(t, (int)lt, (int)rt, o);
+        if (t >= from && t <= to) PrintRow(t, (int)lt, (int)rt, o);
     }
 
-    printf("  ---- 峰值: 出LT=%u 出RT=%u 出L=%u 出R=%u\n", peakLT, peakRT, peakL, peakR);
-    if (lastNonZero > firstNonZero) {
-        printf("  ---- 持续: %u ms ~ %u ms (共 %u ms, 其中输入只按了 %u ms)\n",
-               (unsigned)firstNonZero, (unsigned)lastNonZero,
-               (unsigned)(lastNonZero - firstNonZero), (unsigned)holdMs);
+    printf("  ---- 峰值: 出LT=%u 出RT=%u 出L=%u 出R=%u\n",
+           peakLT, peakRT, peakL, peakR);
+    if (lastNZ > firstNZ) {
+        printf("  ---- 持续: %u ms ~ %u ms (共 %u ms, 输入只按了 %u ms)\n",
+               (unsigned)firstNZ, (unsigned)lastNZ,
+               (unsigned)(lastNZ - firstNZ), (unsigned)holdMs);
     }
     printf("\n");
 }
@@ -70,14 +75,18 @@ int main(int argc, char** argv) {
     GpConfigDefaults(&cfg);
     GpConfigLoad(&cfg);
 
-    printf("配置文件: %s\n", cfg.iniFound ? "已找到(本目录 gpxinput.ini)" : "未找到(用默认值)");
+    printf("配置文件: %s\n",
+           cfg.iniFound ? "已找到(本目录 gpxinput.ini)" : "未找到(用默认值)");
     printf("自合成=%s  状态判据=%s  扳机折算到体感=%.2f\n",
-           cfg.haptics.enable ? "开" : "关",
-           cfg.haptics.useGameState ? "开" : "关",
+           OnOff(cfg.haptics.enable), OnOff(cfg.haptics.useGameState),
            cfg.haptics.trigToBody);
-
-    
-
+    char toolDir[320];
+    GpWideToUtf8(cfg.debugToolDir[0] ? cfg.debugToolDir : L"(游戏目录)",
+               toolDir, (int)sizeof(toolDir));
+    printf("调试模式=%s  窗口(监视=%s 状态=%s)  工具目录=%s\n",
+           OnOff(cfg.debugMode), cfg.debugMonitor ? "拉" : "不拉",
+           cfg.debugStateView ? "拉" : "不拉", toolDir);
+    printf("输出通道设置=%d（0=自动 1=XInput 2=HID 3=WinGamingInput）\n", cfg.output);
 
     if (cfg.haptics.weaponCount > 0) {
         printf("武器档 %d 套:\n", cfg.haptics.weaponCount);
@@ -94,14 +103,12 @@ int main(int argc, char** argv) {
 
     
 
-    if (which[0] == 'a' || which[0] == 's') {
+    if (which[0] == 'a' || which[0] == 's')
         RunLine("开枪 (RT 扣到 210 保持 60ms)", 0, 100, 210, 60, 700, 90, 480);
-    }
 
     
-    if (which[0] == 'a' || which[0] == 'l') {
+    if (which[0] == 'a' || which[0] == 'l')
         RunLine("LT 按下 (按到 200 保持 500ms)", 1, 100, 200, 500, 700, 90, 400);
-    }
 
     return 0;
 }

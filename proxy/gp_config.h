@@ -126,6 +126,22 @@ struct GpProxyConfig {
 
     BOOL        monitorAutoStart;
     wchar_t     monitorExe[MAX_PATH];   
+
+    
+
+
+
+
+
+
+
+
+
+    BOOL        debugMode;
+    BOOL        debugMonitor;      
+    BOOL        debugStateView;    
+    BOOL        debugVerboseLog;   
+    wchar_t     debugToolDir[MAX_PATH];  
 };
 
 

@@ -2,7 +2,7 @@
   "manifestVersion": 1,
   "name": "gpxinput RDR2 震动增强",
   "id": "gpxinput.rdr2.haptics",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "releaseDate": "2026-09-18",
   "types": [
     "hook"
@@ -31,7 +31,7 @@
       "file": "gpxinput.ini",
       "required": true,
       "installTo": "<游戏根目录>",
-      "description": "代理配置；与代理同目录才会被读取"
+      "description": "代理配置；与代理同目录才会被读取。放一个空的 gpxinput_debug.on 可临时打开调试模式（拉起监视/状态窗口、日志转 debug）"
     },
     {
       "role": "proxy-other-games",
