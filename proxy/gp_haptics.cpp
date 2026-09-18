@@ -792,9 +792,20 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
 
     const GpWeaponProfile* prof = FindProfile(st->weaponGroup, st->weaponHash);
 
+    
+
+
+
+
+
+    BOOL noClip = (st->weaponGroup == GPRDR2_GRP_BOW ||
+                   st->weaponGroup == GPRDR2_GRP_THROWN ||
+                   st->weaponGroup == GPRDR2_GRP_MELEE);
+    BOOL ammoDrop = noClip && cs->lastAmmo > 0 && st->ammoInClip < cs->lastAmmo;
+
     BOOL shootingNow = st->shooting != 0;
-    if (shootingNow &&
-        ((!cs->wasShooting) || (now - cs->lastShotTick) >= (DWORD)g_s.triggerRefractoryMs)) {
+    if ((shootingNow && !cs->wasShooting) || ammoDrop ||
+        (shootingNow && (now - cs->lastShotTick) >= (DWORD)g_s.triggerRefractoryMs)) {
         float amp = prof ? prof->shotGain : g_s.shotGain;
         FireShot(cs, now, amp, prof);
 
