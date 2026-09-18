@@ -585,7 +585,11 @@ void OutputLoop(void) {
                 if (g_cfg.haptics.enable) {
                     GpRdr2State st;
                     BOOL ok = gpgame::Read(&st);
-                    GpOnGameState(c, now, ok, ok ? &st : nullptr);
+                    
+
+
+                    if (c == 0) GpOnGameState(c, now, ok, ok ? &st : nullptr);
+                    else        GpOnGameState(c, now, FALSE, nullptr);
                 }
 
                 GpFrame res;

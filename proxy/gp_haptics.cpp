@@ -781,9 +781,20 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
             float amp = prof ? prof->shotGain : g_s.shotGain;
             FireShot(cs, now, amp, prof);
         }
-        GP_LOG_DEBUG("haptics: 弹匣 %d -> %d，判定开枪 %d 发（组=0x%08X %s）",
-                     cs->lastAmmo, st->ammoInClip, fired, st->weaponGroup,
-                     prof ? prof->name : "通用");
+        
+
+        {
+            float gg = g_s.shotTrigGain > 0.0f ? g_s.shotTrigGain : 1.0f;
+            float rtv = (prof ? prof->trigR : g_s.shotTrigR) * gg;
+            if (rtv < g_s.shotTrigFloor) rtv = g_s.shotTrigFloor;
+            if (rtv > g_s.shotTrigCeil)  rtv = g_s.shotTrigCeil;
+            GP_LOG_INFO("haptics: 判定开枪 %d 发「%s」-> 扳机 L=%.0f R=%.0f 握把 L=%.0f R=%.0f 时长=%dms",
+                        fired, prof ? prof->name : "通用",
+                        (prof ? prof->trigL : g_s.shotTrigL) * gg, rtv,
+                        (prof ? prof->bodyL : g_s.shotBodyL) * g_s.shotBodyScale * gg,
+                        (prof ? prof->bodyR : g_s.shotBodyR) * g_s.shotBodyScale * gg,
+                        prof ? prof->shotEnvMs : g_s.shotEnvMs);
+        }
     } else if (!prof && st->shooting && !cs->wasShooting &&
                now - cs->lastShotTick >= refr) {
         
