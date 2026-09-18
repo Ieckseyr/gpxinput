@@ -1,0 +1,20 @@
+
+
+
+
+
+
+LIBRARY XInput1_3
+EXPORTS
+    DllMain=gp_exp_DllMain @1
+    XInputGetState=gp_exp_XInputGetState @2
+    XInputSetState=gp_exp_XInputSetState @3
+    XInputGetCapabilities=gp_exp_XInputGetCapabilities @4
+    XInputEnable=gp_exp_XInputEnable @5
+    XInputGetDSoundAudioDeviceGuids=gp_exp_XInputGetDSoundAudioDeviceGuids @6
+    XInputGetBatteryInformation=gp_exp_XInputGetBatteryInformation @7
+    XInputGetKeystroke=gp_exp_XInputGetKeystroke @8
+    gp_exp_ordinal100 @100 NONAME
+    gp_exp_ordinal101 @101 NONAME
+    gp_exp_ordinal102 @102 NONAME
+    gp_exp_ordinal103 @103 NONAME

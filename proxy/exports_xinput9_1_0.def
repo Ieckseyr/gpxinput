@@ -1,0 +1,13 @@
+
+
+
+
+
+
+LIBRARY XInput9_1_0
+EXPORTS
+    DllMain=gp_exp_DllMain @1
+    XInputGetCapabilities=gp_exp_XInputGetCapabilities @2
+    XInputGetDSoundAudioDeviceGuids=gp_exp_XInputGetDSoundAudioDeviceGuids @3
+    XInputGetState=gp_exp_XInputGetState @4
+    XInputSetState=gp_exp_XInputSetState @5

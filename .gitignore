@@ -1,0 +1,10 @@
+build/
+.xmake/
+.zcode/
+.vs/
+*.log
+*.pdb
+*.ilk
+*.user
+dist/pkg/
+clean.bat
