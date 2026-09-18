@@ -296,6 +296,7 @@ void GpConfigLoad(GpProxyConfig* cfg) {
         h.rideSpeedHigh    = ReadFloat(ini, L"Haptics", L"RideSpeedHigh", h.rideSpeedHigh);
         h.rideCurve        = ReadFloat(ini, L"Haptics", L"RideCurve", h.rideCurve);
         h.rideAmpMax       = ReadFloat(ini, L"Haptics", L"RideAmpMax", h.rideAmpMax);
+        h.rideAmpMin       = ReadFloat(ini, L"Haptics", L"RideAmpMin", h.rideAmpMin);
         h.rideFadeMs       = ReadFloat(ini, L"Haptics", L"RideFadeMs", h.rideFadeMs);
         h.rideBeats        = ReadInt(ini, L"Haptics", L"RideBeats", h.rideBeats);
         h.rideBeatAccent   = ReadFloat(ini, L"Haptics", L"RideBeatAccent", h.rideBeatAccent);
