@@ -190,6 +190,9 @@ struct GpHapticsSettings {
 
     float aimRampMs;
     float aimRampGain;
+    
+
+    float aimRampCurve;
 
     
     float tickGain;

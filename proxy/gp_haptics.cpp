@@ -332,9 +332,11 @@ void GpDefaultHapticsSettings(GpHapticsSettings* s) {
     s->aimBreathHz  = 0.4f;   
     s->aimTriggerLevel = 0.24f;  
     s->aimHoldMs       = 300;    
-    s->aimRampMs       = 3500.0f; 
+    
 
-    s->aimRampGain     = 0.80f;  
+    s->aimRampMs       = 60000.0f;
+    s->aimRampGain     = 5.00f;
+    s->aimRampCurve    = 3.00f;
     s->tickGain        = 0.35f;  
     s->tickEnvMs       = 45;
     s->ltPressEnable   = FALSE;
@@ -421,7 +423,9 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
     if (g_s.aimHoldMs > 2000) g_s.aimHoldMs = 2000;
     if (g_s.aimRampMs < 100.0f) g_s.aimRampMs = 100.0f;
     if (g_s.aimRampGain < 0.0f) g_s.aimRampGain = 0.0f;
-    if (g_s.aimRampGain > 3.0f) g_s.aimRampGain = 3.0f;
+    if (g_s.aimRampGain > 20.0f) g_s.aimRampGain = 20.0f;
+    if (g_s.aimRampCurve < 0.5f) g_s.aimRampCurve = 0.5f;
+    if (g_s.aimRampCurve > 8.0f) g_s.aimRampCurve = 8.0f;
     if (g_s.tickEnvMs < 10) g_s.tickEnvMs = 10;
     if (g_s.drawEnvMs < 10) g_s.drawEnvMs = 10;
     if (g_s.bowDrawGain < 0.0f) g_s.bowDrawGain = 0.0f;
@@ -1086,11 +1090,14 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
             
 
             if (cs->aimStart == 0) cs->aimStart = now;
+            
+
             float ramp = 1.0f;
             if (g_s.aimRampGain > 0.0f) {
                 float t = (float)(now - cs->aimStart) / g_s.aimRampMs;
                 if (t > 1.0f) t = 1.0f;
-                ramp = 1.0f + t * g_s.aimRampGain;
+                if (t < 0.0f) t = 0.0f;
+                ramp = 1.0f + powf(t, g_s.aimRampCurve) * g_s.aimRampGain;
             }
 
             
@@ -1107,8 +1114,10 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
             
             if (g_s.aimBothTriggers)
                 addTrigR += prof->aimTrig * 255.0f * ramp;
-            addBodyL += prof->aimBody * 255.0f * ramp * breath;
-            addBodyR += prof->aimBody * 255.0f * ramp * breath;
+            
+
+            addBodyL += prof->aimBody * 255.0f * breath;
+            addBodyR += prof->aimBody * 255.0f * breath;
         }
     } else {
         

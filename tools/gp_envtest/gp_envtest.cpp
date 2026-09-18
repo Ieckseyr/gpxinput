@@ -137,7 +137,7 @@ void RunRide(void) {
 
 void RunAim(void) {
     GpResetHaptics();
-    GpConPrintf("\n==== 瞄准（手枪，LT 按住 3 秒）====\n");
+    GpConPrintf("\n==== 瞄准（手枪，LT 按住 65 秒；看久瞄增幅曲线）====\n");
     GpConPrintf("  t(ms)   出LT  出RT   出L   出R   （期望：扳机稳定 ~15，握把低频起伏）\n");
 
     GpRdr2State st;
@@ -152,7 +152,7 @@ void RunAim(void) {
 
     int ltMin = 999, ltMax = 0, bodyMin = 999, bodyMax = 0;
     int aimActiveTicks = 0;
-    for (DWORD t = 0; t <= 3000; t += kStepMs) {
+    for (DWORD t = 0; t <= 65000; t += kStepMs) {
         st.tickMs = 1000 + t;
         GpOnPadInput(0, 1000 + t, 200, 0);          
         GpOnGameState(0, 1000 + t, TRUE, &st);
@@ -166,7 +166,7 @@ void RunAim(void) {
         if ((int)o.leftMotor   < bodyMin) bodyMin = o.leftMotor;
         if ((int)o.leftMotor   > bodyMax) bodyMax = o.leftMotor;
 
-        if ((t % 250) == 0)
+        if ((t % 5000) == 0)
             GpConPrintf("  %5u   %4u  %4u  %4u  %4u\n", t, o.leftTrigger,
                         o.rightTrigger, o.leftMotor, o.rightMotor);
     }
