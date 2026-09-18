@@ -107,6 +107,12 @@ struct GpHapticsSettings {
 
     float rideSpeedLow;
     float rideSpeedHigh;
+    
+
+
+
+
+    float rideCurve;
 
     
     

@@ -257,6 +257,7 @@ void GpDefaultHapticsSettings(GpHapticsSettings* s) {
     s->rideEnable       = TRUE;
     s->ridePeakThresh   = 0.10f;
     s->rideSpeedLow     = 1.0f;
+    s->rideCurve        = 1.3f;
     s->rideSpeedHigh    = 9.0f;
     s->rideGain         = 0.9f;
     s->rideTrigGain     = 0.35f;
@@ -338,6 +339,8 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
     if (g_s.rideSpeedLow < 0.0f) g_s.rideSpeedLow = 0.0f;
     if (g_s.rideSpeedHigh <= g_s.rideSpeedLow + 0.5f)
         g_s.rideSpeedHigh = g_s.rideSpeedLow + 0.5f;
+    if (g_s.rideCurve < 0.5f) g_s.rideCurve = 0.5f;
+    if (g_s.rideCurve > 4.0f) g_s.rideCurve = 4.0f;
 
     if (g_s.aimTriggerLevel < 0.05f) g_s.aimTriggerLevel = 0.05f;
     if (g_s.aimTriggerLevel > 0.9f) g_s.aimTriggerLevel = 0.9f;
@@ -361,14 +364,15 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
     }
 
     GP_LOG_INFO("haptics: 自合成%s 开枪(接管=%s 扳机判据=%s 扣下阈值=%.2f / 波形判据=%s 阈值=%.2f 增益=%.2f 时长=%dms 侧=%d 体感=%.2f) "
-                "骑乘(%s 增益=%.2f 扳机=%.2f 周期=%d~%dms 马速=%.1f~%.1f) 无HID折算=%.2f",
+                "骑乘(%s 增益=%.2f 扳机=%.2f 周期=%d~%dms 马速=%.1f~%.1f 曲线=%.1f) 无HID折算=%.2f",
                 g_s.enable ? "开启" : "关闭", g_s.shotReplaceGame ? "是" : "否",
                 g_s.shotFromTrigger ? "开" : "关", g_s.triggerPressThresh,
                 g_s.shotFromRumble ? "开" : "关",
                 g_s.shotRiseThresh, g_s.shotGain, g_s.shotEnvMs, g_s.shotSide, g_s.shotBodyKick,
                 g_s.rideEnable ? "开" : "关", g_s.rideGain, g_s.rideTrigGain,
                 g_s.rideMinPeriodMs, g_s.rideMaxPeriodMs,
-                (double)g_s.rideSpeedLow, (double)g_s.rideSpeedHigh, g_s.trigToBody);
+                (double)g_s.rideSpeedLow, (double)g_s.rideSpeedHigh,
+                (double)g_s.rideCurve, g_s.trigToBody);
 
     if (!g_s.driveLeftMotor || !g_s.driveRightMotor ||
         !g_s.driveLeftTrigger || !g_s.driveRightTrigger) {
@@ -751,7 +755,9 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
                                    (g_s.rideMinPeriodMs - g_s.rideMaxPeriodMs) * k);
             if (period < 120) period = 120;
 
-            cs->rideAmp   = 0.45f + 0.55f * k;   
+            
+
+            cs->rideAmp   = powf(k, g_s.rideCurve);   
             cs->rideUntil = now + 400;           
 
             g_ridePeriod[controller] = period;

@@ -75,7 +75,7 @@ void RunLine(const char* title, int isLT, DWORD pressAt, BYTE depth, DWORD holdM
 void RunRide(void) {
     GpResetHaptics();
     PrintHeader("骑乘辅助（马速 0 -> 12）");
-    printf("  t(ms)  马速   出R  出RT   （体感主导 + 轻量同步到扳机）\n");
+    GpConPrintf("  每半秒一段马速，下面给出该段的峰值（体感主导 + 轻量同步到扳机）\n");
 
     GpRdr2State st;
     memset(&st, 0, sizeof(st));
@@ -87,7 +87,8 @@ void RunRide(void) {
     st.onMount    = 1;
     st.onFoot     = 0;
 
-    int pulses = 0, lastBody = 0;
+    int pulses = 0, lastBody = 0, winPeak = 0, winTrigPeak = 0;
+    float prevSpeed = 0.0f;
     DWORD prevPulse = 0;
     DWORD gaps[32];
     int   gapCount = 0;
@@ -108,18 +109,26 @@ void RunRide(void) {
             prevPulse = t;
         }
         lastBody = body;
+        prevSpeed = speed;
 
-        if ((t % 500) == 0)
-            printf("  %5u  %5.1f  %4u  %4u\n", t, speed, o.rightMotor,
-                   o.rightTrigger);
+        if (body > winPeak) winPeak = body;
+        if (o.rightTrigger > winTrigPeak) winTrigPeak = o.rightTrigger;
+        
+
+        if ((t % 500) == 0 && t) {
+            GpConPrintf("  马速 %5.1f  ->  体感峰值 %3d   扳机峰值 %3d\n",
+                        prevSpeed, winPeak, winTrigPeak);
+            winPeak = 0;
+            winTrigPeak = 0;
+        }
     }
-    printf("  ---- 4 秒内 %d 次踏地脉冲\n", pulses);
+    GpConPrintf("  ---- 4 秒内 %d 次踏地脉冲\n", pulses);
     if (gapCount) {
-        printf("  ---- 相邻间隔(ms):");
-        for (int i = 0; i < gapCount && i < 12; ++i) printf(" %u", gaps[i]);
-        printf("\n");
+        GpConPrintf("  ---- 相邻间隔(ms):");
+        for (int i = 0; i < gapCount && i < 12; ++i) GpConPrintf(" %u", gaps[i]);
+        GpConPrintf("\n");
     }
-    printf("\n");
+    GpConPrintf("\n");
 }
 
 }  
