@@ -15,6 +15,7 @@ volatile LONG g_step    = 0;
 BOOL          g_faulted = FALSE;
 volatile LONG g_frames  = 0;   
 volatile LONG g_ammoFaults = 0;   
+int g_ammoClip = 0;                
 unsigned long g_excCode = 0;
 
 BOOL g_tickSeen      = FALSE;
@@ -132,6 +133,21 @@ const char* GroupName(uint32_t h) {
 
 
 
+
+
+
+
+int ReadAmmoTotal(int ped, uint32_t weapon) {
+    int total = -1;
+    __try {
+        total = (int)rdr2_call2(N_GET_AMMO_IN_PED_WEAPON, (uint64_t)(int64_t)ped,
+                                (uint64_t)weapon);
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        total = -1;
+    }
+    return total;                       
+}
+
 BOOL GroupHasClip(uint32_t group) {
     switch (group) {
     case GPRDR2_GRP_PISTOL:
@@ -247,7 +263,14 @@ void Tick(void) {
                 g_step = 3;
                 group = (uint32_t)rdr2_call1(N_GET_WEAPONTYPE_GROUP, weapon);
                 g_step = 4;
-                ReadAmmo(ped, weapon, group, &ammo);
+                int total = ReadAmmoTotal(ped, weapon);
+                if (total >= 0) {
+                    ammo = total;
+                } else {
+                    ammo = 0;
+                }
+                g_ammoClip = 0;
+                ReadAmmo(ped, weapon, group, &g_ammoClip);   
             }
             g_step = 5;
             uint32_t sinceShot = (uint32_t)rdr2_call1(N_TIME_SINCE_PED_LAST_SHOT, (uint64_t)(int64_t)ped);
@@ -289,7 +312,10 @@ void Tick(void) {
             g_state->onMount   = (uint8_t)(mount != 0);
             g_state->inVehicle = (uint8_t)(rdr2_call2(N_IS_PED_IN_ANY_VEHICLE, (uint64_t)(int64_t)ped, 0) != 0);
             g_state->menuActive = (uint8_t)(rdr2_call0(N_IS_PAUSE_MENU_ACTIVE) != 0);
-            g_state->armed      = (uint8_t)(rdr2_call2(N_IS_PED_ARMED, (uint64_t)(int64_t)ped, 1) != 0);
+            
+
+
+        g_state->armed      = (uint8_t)(weapon != 0 && weapon != 0xA2719263u);
 
             g_state->horseSpeed  = horseSpeed;
             g_state->playerSpeed = 0.0f;
@@ -346,6 +372,14 @@ void Tick(void) {
                 uint32_t f = (uint32_t)(g_frames / 300);
                 Log("存活：已跑 %u00 帧（ped=%d 武器=0x%08X 组=0x%08X 弹匣=%d）",
                     f, ped, weapon, group, ammo);
+
+                
+
+
+                Log("诊断：持械=%u 瞄准=%u 开枪=%u 装弹=%u 步行=%u 骑马=%u 车内=%u "
+                    "弹匣(总量)=%d 弹匣(弹夹)=%d",
+                    g_state->armed, g_state->aiming, g_state->shooting, g_state->reloading,
+                    g_state->onFoot, g_state->onMount, g_state->inVehicle, ammo, g_ammoClip);
             }
 
         } __except (g_excCode = GetExceptionCode(), EXCEPTION_EXECUTE_HANDLER) {
