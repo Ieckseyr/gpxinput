@@ -316,6 +316,8 @@ void GpConfigLoad(GpProxyConfig* cfg) {
         h.aimBreathHz  = ReadFloat(ini, L"Haptics", L"AimBreathHz", h.aimBreathHz);
         h.aimBothTriggers  = ReadBool(ini, L"Haptics", L"AimBothTriggers", h.aimBothTriggers);
         h.aimEnable        = ReadBool(ini, L"Haptics", L"AimEnable", h.aimEnable);
+        h.aimTrigScale     = ReadFloat(ini, L"Haptics", L"AimTrigScale", h.aimTrigScale);
+        h.aimBodyScale     = ReadFloat(ini, L"Haptics", L"AimBodyScale", h.aimBodyScale);
         h.aimTriggerLevel = ReadFloat(ini, L"Haptics", L"AimTriggerLevel", h.aimTriggerLevel);
         h.aimHoldMs       = ReadInt(ini, L"Haptics", L"AimHoldMs", h.aimHoldMs);
         h.aimRampMs       = ReadFloat(ini, L"Haptics", L"AimRampMs", h.aimRampMs);

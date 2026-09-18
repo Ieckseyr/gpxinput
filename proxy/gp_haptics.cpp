@@ -329,6 +329,8 @@ void GpDefaultHapticsSettings(GpHapticsSettings* s) {
     
     s->useGameState = TRUE;
     s->aimEnable        = FALSE;
+    s->aimTrigScale     = 1.0f;
+    s->aimBodyScale     = 1.0f;
     s->aimBothTriggers  = FALSE;
     s->aimBreathHz  = 0.4f;   
     s->aimTriggerLevel = 0.24f;  
@@ -422,6 +424,10 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
     if (g_s.aimTriggerLevel > 0.9f) g_s.aimTriggerLevel = 0.9f;
     if (g_s.aimHoldMs < 0) g_s.aimHoldMs = 0;
     if (g_s.aimHoldMs > 2000) g_s.aimHoldMs = 2000;
+    if (g_s.aimTrigScale < 0.0f) g_s.aimTrigScale = 0.0f;
+    if (g_s.aimTrigScale > 10.0f) g_s.aimTrigScale = 10.0f;
+    if (g_s.aimBodyScale < 0.0f) g_s.aimBodyScale = 0.0f;
+    if (g_s.aimBodyScale > 10.0f) g_s.aimBodyScale = 10.0f;
     if (g_s.aimRampMs < 100.0f) g_s.aimRampMs = 100.0f;
     if (g_s.aimRampGain < 0.0f) g_s.aimRampGain = 0.0f;
     if (g_s.aimRampGain > 20.0f) g_s.aimRampGain = 20.0f;
@@ -1116,14 +1122,16 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
                                 (1.0f - cosf(6.2831853f * g_s.aimBreathHz * secs));
             }
             cs->aimActiveNow = TRUE;
-            addTrigL += prof->aimTrig * 255.0f * ramp;
+            float ts = g_s.aimTrigScale > 0.0f ? g_s.aimTrigScale : 1.0f;
+            float bs = g_s.aimBodyScale > 0.0f ? g_s.aimBodyScale : 1.0f;
+            addTrigL += prof->aimTrig * 255.0f * ramp * ts;
             
             if (g_s.aimBothTriggers)
-                addTrigR += prof->aimTrig * 255.0f * ramp;
+                addTrigR += prof->aimTrig * 255.0f * ramp * ts;
             
 
-            addBodyL += prof->aimBody * 255.0f * breath;
-            addBodyR += prof->aimBody * 255.0f * breath;
+            addBodyL += prof->aimBody * 255.0f * breath * bs;
+            addBodyR += prof->aimBody * 255.0f * breath * bs;
         }
     } else {
         

@@ -176,6 +176,11 @@ struct GpHapticsSettings {
 
     
 
+    float aimTrigScale;
+    float aimBodyScale;
+
+    
+
 
 
 
