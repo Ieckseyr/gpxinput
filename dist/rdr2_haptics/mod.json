@@ -1,32 +1,30 @@
 {
   "manifestVersion": 1,
-
   "name": "gpxinput RDR2 震动增强",
   "id": "gpxinput.rdr2.haptics",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "releaseDate": "2026-09-18",
-
-  "types": ["hook", "asi", "tool"],
+  "types": [
+    "hook"
+  ],
   "typeDescription": {
-    "hook": "XInput 反向代理 DLL：冒充 xinput9_1_0.dll 被游戏加载，完整转发到系统原件，只在震动调用上做加工。不注入、不改游戏内存、不改游戏数据。",
-    "asi": "游戏内只读状态组件：由 ASI 加载器加载，每帧读几个 native 写入共享内存。不做任何游戏行为修改，删掉即无痕迹。",
-    "tool": "独立诊断/监视工具：只读共享内存，不参与震动链路。"
+    "hook": "XInput 反向代理 DLL：冒充 xinput9_1_0.dll 被游戏加载，完整转发到系统原件，只在震动调用上做加工。不注入、不改游戏内存、不改游戏数据。"
   },
-
   "game": {
     "name": "Red Dead Redemption 2",
     "platform": "PC (Windows x64)",
-    "versions": ["1.0.1491.50"],
+    "versions": [
+      "1.0.1491.50"
+    ],
     "note": "RDR2 静态导入 XINPUT9_1_0，故代理文件名为 xinput9_1_0.dll；Steam / Epic / R* 版通用。"
   },
-
   "components": [
     {
       "role": "proxy",
       "file": "xinput9_1_0.dll",
       "required": true,
       "installTo": "<游戏根目录>",
-      "description": "震动代理 + 合成器；负责拦截、合成、直写 HID"
+      "description": "震动代理 + 扳机震动合成器；负责拦截、合成、直写 HID"
     },
     {
       "role": "config",
@@ -34,20 +32,6 @@
       "required": true,
       "installTo": "<游戏根目录>",
       "description": "代理配置；与代理同目录才会被读取"
-    },
-    {
-      "role": "gamestate",
-      "file": "gpxinput_rdr2.asi",
-      "required": false,
-      "installTo": "<游戏根目录>",
-      "description": "发布武器/瞄准/骑马等游戏状态；缺失时自动退回扳机判据"
-    },
-    {
-      "role": "monitor",
-      "file": "gp_monitor.exe",
-      "required": false,
-      "installTo": "<游戏根目录>",
-      "description": "四电机实时监视窗口；代理自动拉起，也可手动双击"
     },
     {
       "role": "proxy-other-games",
@@ -64,7 +48,6 @@
       "description": "同一份代码，服务使用 xinput1_3 的游戏"
     }
   ],
-
   "requirements": {
     "admin": {
       "needed": "partial",
@@ -79,11 +62,16 @@
     "registry": false,
     "network": false
   },
-
   "conflicts": [
     {
       "with": "其他 XInput 代理/模拟器",
-      "examples": ["X1nput", "DS4Windows", "x360ce", "Steam Input", "reWASD"],
+      "examples": [
+        "X1nput",
+        "DS4Windows",
+        "x360ce",
+        "Steam Input",
+        "reWASD"
+      ],
       "why": "同一时间只能有一个进程内代理接管 XInputSetState；同时存在时行为不可预测"
     },
     {
@@ -91,20 +79,22 @@
       "why": "同样会挂钩 XInputSetState"
     }
   ],
-
   "uninstall": {
     "method": "delete-files",
-    "files": ["xinput9_1_0.dll", "gpxinput.ini", "gpxinput_rdr2.asi", "gp_monitor.exe"],
-    "leftovers": ["xinput9_1_0.<pid>.log", "gpxinput_rdr2.log", "*.csv（若开了录制）"],
+    "files": [
+      "xinput9_1_0.dll",
+      "gpxinput.ini"
+    ],
+    "leftovers": [
+      "xinput9_1_0.<pid>.log"
+    ],
     "note": "不写游戏文件、不改注册表、不 hook 游戏代码；删除即完全还原，存档与其它 mod 不受影响。"
   },
-
   "scope": {
     "singlePlayer": true,
     "online": false,
     "note": "仅单机单人；不涉及 RDO，不做任何反作弊相关的事。"
   },
-
   "build": {
     "toolchain": "xmake + MSVC x64 (C++17)",
     "command": "xmake f -p windows -a x64 -m release && xmake",
@@ -113,5 +103,17 @@
       "build/bin/gpxinput_rdr2.asi",
       "build/bin/gp_monitor.exe"
     ]
+  },
+  "status": {
+    "usable": [
+      "开枪 → 扳机脉冲（RT）。判据是「右扳机扣下」，代理直接读手柄，不依赖游戏状态。",
+      "按下 LT → 左侧一下短反馈（约 110ms，只走左侧）。同样不依赖游戏状态。"
+    ],
+    "workInProgress": [
+      "武器识别 / 不同枪不同手感：需要游戏内状态组件（gpxinput_rdr2.asi），该组件未随包提供，功能未完成。",
+      "瞄准持续微震 / 久瞄变抖：同上，依赖状态组件。",
+      "骑乘辅助震动：RDR2 的 PC 震动实测是一条连续渐变、没有跳变，马蹄判据不可靠，配置里默认关闭。"
+    ],
+    "note": "本包只包含「扳机震动」这一路。上面未完成的部分在源码里，但不在发布包内，默认也不生效。"
   }
 }
