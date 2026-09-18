@@ -328,6 +328,7 @@ void GpDefaultHapticsSettings(GpHapticsSettings* s) {
 
     
     s->useGameState = TRUE;
+    s->aimEnable        = FALSE;
     s->aimBothTriggers  = FALSE;
     s->aimBreathHz  = 0.4f;   
     s->aimTriggerLevel = 0.24f;  
@@ -1084,7 +1085,7 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
     BOOL aimingNow = cs->stateValid && !cs->menuActive &&
                      (cs->aiming ||
                       (cs->armed && cs->ltDown && holdMs >= (DWORD)g_s.aimHoldMs));
-    if (g_s.useGameState && aimingNow) {
+    if (g_s.aimEnable && g_s.useGameState && aimingNow) {
         const GpWeaponProfile* prof = FindProfile(cs->stateGroup, cs->lastWeapon);
         if (prof && (prof->aimTrig > 0.0f || prof->aimBody > 0.0f)) {
             

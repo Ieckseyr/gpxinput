@@ -172,6 +172,12 @@ struct GpHapticsSettings {
 
 
 
+    BOOL  aimEnable;
+
+    
+
+
+
 
     BOOL  aimBothTriggers;
 
