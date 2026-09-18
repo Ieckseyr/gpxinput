@@ -73,6 +73,7 @@ struct CtrlState {
     float rideAmp;
     DWORD rideUntil;
     
+    BOOL  stateSeenOnce;   
     BOOL  onMount;
     float horseSpeed;
     DWORD rideNextTick;
@@ -546,6 +547,12 @@ void GpOnPadInput(uint32_t controller, DWORD now, BYTE leftTrigger, BYTE rightTr
 
     BOOL stateShot = (g_s.useGameState && cs->stateValid);
 
+    
+
+
+
+    if (g_s.useGameState && !cs->stateSeenOnce) stateShot = TRUE;
+
     if (!stateShot && g_s.shotFromTrigger && cs->trigArmed && rightTrigger >= hi &&
         sinceShot >= (DWORD)g_s.triggerRefractoryMs) {
         const GpWeaponProfile* prof = FindProfile(cs->stateGroup);
@@ -602,6 +609,7 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
 
     cs->menuActive = st->menuActive != 0;
     cs->armed      = st->armed != 0;
+    cs->stateSeenOnce = TRUE;
     cs->onMount    = st->onMount != 0;
     cs->horseSpeed = st->horseSpeed;
 
