@@ -90,6 +90,7 @@ struct CtrlState {
     DWORD   decelSince;      
     BOOL    driftFired, rearFired;
     DWORD   lastDriftTick, lastRearTick;
+    DWORD   lastLandTick;    
     float   prevMountHeight;   
     DWORD   airborneSince;     
     float   peakAirHeight;     
@@ -456,6 +457,8 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
     if (g_s.spookGain < 0.0f) g_s.spookGain = 0.0f;
     if (g_s.spookEnvMs < 10) g_s.spookEnvMs = 10;
     if (g_s.spookAccel > -1.0f) g_s.spookAccel = -1.0f;
+    if (g_s.mountLandRise < 0.1f) g_s.mountLandRise = 0.1f;
+    if (g_s.mountLandRise > 1.0f) g_s.mountLandRise = 1.0f;
     if (g_s.rideFadeMs < 0.0f) g_s.rideFadeMs = 0.0f;
     if (g_s.rideFadeMs > 5000.0f) g_s.rideFadeMs = 5000.0f;
     if (g_s.rideBeats < 1) g_s.rideBeats = 1;
@@ -653,6 +656,24 @@ void GpOnGameFrame(uint32_t controller, DWORD tick, BYTE bodyL, BYTE bodyR) {
         GP_LOG_DEBUG("haptics: 检测到冲击 幅度=%.2f 侧=%s (基线 L=%.0f R=%.0f 现值 L=%u R=%u)",
                      rise, side == 0 ? "右" : "左", cs->baseL, cs->baseR,
                      (unsigned)bodyL, (unsigned)bodyR);
+    }
+
+    
+
+
+
+
+    if (g_s.rideEnable && cs->stateValid && cs->onMount &&
+        now - cs->lastLandTick >= 600) {
+        float riseMax = riseL > riseR ? riseL : riseR;
+        if (riseMax >= g_s.mountLandRise) {
+            float amp = Clamp01(riseMax) * g_s.mountLandGain;
+            if (amp > 1.2f) amp = 1.2f;
+            cs->lastLandTick = now;
+            GpFireEffect(controller, GP_FX_DRAW, amp, g_s.mountLandEnvMs, 2);
+            GP_LOG_INFO("haptics: 坐骑落地（声=%.2f）-> 力度 %.2f",
+                        (double)riseMax, (double)amp);
+        }
     }
 
     
@@ -897,13 +918,15 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
     } else if (cs->airborneSince != 0) {
         DWORD airMs = now - cs->airborneSince;
         cs->airborneSince = 0;
-        if (cs->onMount && airMs >= 150 && g_s.mountLandGain > 0.0f && !cs->uiOverlay) {
+        if (cs->onMount && airMs >= 150 && g_s.mountLandGain > 0.0f && !cs->uiOverlay &&
+            now - cs->lastLandTick >= 600) {
             float peak = cs->peakAirHeight;
             float k = (peak - g_s.mountLandHeight) / 6.0f;   
             if (k < 0.0f) k = 0.0f;
             if (k > 1.0f) k = 1.0f;
             float amp = g_s.mountLandGain * (0.65f + 0.6f * k);
             if (amp > 1.2f) amp = 1.2f;
+            cs->lastLandTick = now;
             GpFireEffect(controller, GP_FX_DRAW, amp, g_s.mountLandEnvMs, 2);
             GP_LOG_INFO("haptics: 坐骑落地（腾空 %lums，最高 %.1fm）-> 力度 %.2f",
                         (unsigned long)airMs, (double)peak, (double)amp);
