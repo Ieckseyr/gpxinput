@@ -321,6 +321,11 @@ void Tick(void) {
         g_state->armed      = (uint8_t)(weapon != 0 && weapon != 0xA2719263u);
 
             
+    g_state->mountJumping = 0;
+    if (mount != 0)
+        g_state->mountJumping = (uint8_t)(rdr2_call1(N_IS_PED_JUMPING, (uint64_t)(int64_t)mount) != 0);
+
+    
 
     g_state->horseGait = 255;
     if (mount != 0) {

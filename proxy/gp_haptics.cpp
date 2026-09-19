@@ -84,6 +84,9 @@ struct CtrlState {
     BOOL  stateSeenOnce;   
     BOOL  onMount;
     uint8_t horseGait;   
+    BOOL    wasMountJump;
+    BOOL    uiOverlay;     
+    BOOL    slowMotion;    
     float horseSpeed;
     DWORD rideNextTick;
     float rideLevel;      
@@ -428,6 +431,10 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
     if (g_s.rideAmpMin > g_s.rideAmpMax) g_s.rideAmpMin = g_s.rideAmpMax;
     if (g_s.rideBodyBase < 0.0f) g_s.rideBodyBase = 0.0f;
     if (g_s.rideBodyBase > 0.5f) g_s.rideBodyBase = 0.5f;
+    if (g_s.slowMoStretch < 1.0f) g_s.slowMoStretch = 1.0f;
+    if (g_s.slowMoStretch > 20.0f) g_s.slowMoStretch = 20.0f;
+    if (g_s.mountJumpGain < 0.0f) g_s.mountJumpGain = 0.0f;
+    if (g_s.mountJumpEnvMs < 10) g_s.mountJumpEnvMs = 10;
     if (g_s.rideFadeMs < 0.0f) g_s.rideFadeMs = 0.0f;
     if (g_s.rideFadeMs > 5000.0f) g_s.rideFadeMs = 5000.0f;
     if (g_s.rideBeats < 1) g_s.rideBeats = 1;
@@ -758,6 +765,8 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
         cs->aiming      = FALSE;
         cs->onMount     = FALSE;
         cs->horseGait   = 255;
+        cs->uiOverlay   = FALSE;
+        cs->slowMotion  = FALSE;
         cs->horseSpeed  = 0.0f;
         cs->rideNextTick = 0;
         cs->stateGroup  = 0;
@@ -816,6 +825,27 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
 
     cs->onMount    = st->onMount != 0;
     cs->horseGait  = st->horseGait;
+    cs->uiOverlay  = st->uiOverlay != 0;
+    cs->slowMotion = st->slowMotion != 0;
+
+    
+
+
+
+
+    if (cs->uiOverlay || st->menuActive) {
+        cs->rideLevel    = 0.0f;
+        cs->rideNextTick = 0;
+        cs->rideAmp      = 0.0f;
+    }
+
+    
+    BOOL mountJumpNow = st->mountJumping != 0;
+    if (mountJumpNow && !cs->wasMountJump && g_s.mountJumpGain > 0.0f && !cs->uiOverlay) {
+        GpFireEffect(controller, GP_FX_DRAW, g_s.mountJumpGain, g_s.mountJumpEnvMs, 2);
+        GP_LOG_DEBUG("haptics: 坐骑起跳 -> 发力反馈");
+    }
+    cs->wasMountJump = mountJumpNow;
     cs->horseSpeed = st->horseSpeed;
 
     
@@ -1087,6 +1117,10 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
             if (period < 120) period = 120;
 
             
+            if (cs->slowMotion)
+                period = (DWORD)(period * (g_s.slowMoStretch > 1.0f ? g_s.slowMoStretch : 1.0f));
+
+            
 
             int beats;
             switch (cs->horseGait) {
@@ -1210,7 +1244,7 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
 
 
     DWORD holdMs = cs->ltDown ? (DWORD)(now - cs->ltDownTick) : 0;
-    BOOL aimingNow = cs->stateValid && !cs->menuActive &&
+    BOOL aimingNow = cs->stateValid && !cs->menuActive && !cs->uiOverlay &&
                      (cs->aiming ||
                       (cs->armed && cs->ltDown && holdMs >= (DWORD)g_s.aimHoldMs));
     if (g_s.aimEnable && g_s.useGameState && aimingNow) {

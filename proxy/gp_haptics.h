@@ -164,6 +164,20 @@ struct GpHapticsSettings {
 
     BOOL  rideReplaceGame;
 
+    
+
+
+
+
+    float slowMoStretch;
+
+    
+    float mountJumpGain;
+    int   mountJumpEnvMs;
+
+    
+    BOOL  rideReplaceGameDummy;
+
     float rideAmpMin;
 
     
