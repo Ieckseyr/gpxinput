@@ -322,8 +322,15 @@ void Tick(void) {
 
             
     g_state->mountJumping = 0;
-    if (mount != 0)
+    g_state->mountHeight  = 0.0f;
+    if (mount != 0) {
         g_state->mountJumping = (uint8_t)(rdr2_call1(N_IS_PED_JUMPING, (uint64_t)(int64_t)mount) != 0);
+        
+
+        uint64_t bits = rdr2_call1(N_GET_ENTITY_HEIGHT_ABOVE_GROUND, (uint64_t)(int64_t)mount);
+        float h; memcpy(&h, &bits, sizeof(h));
+        g_state->mountHeight = (h == h && h >= 0.0f && h < 500.0f) ? h : 0.0f;
+    }
 
     
 

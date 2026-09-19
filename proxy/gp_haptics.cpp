@@ -85,6 +85,7 @@ struct CtrlState {
     BOOL  onMount;
     uint8_t horseGait;   
     BOOL    wasMountJump;
+    float   prevMountHeight;   
     BOOL    uiOverlay;     
     BOOL    slowMotion;    
     float horseSpeed;
@@ -435,6 +436,9 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
     if (g_s.slowMoStretch > 20.0f) g_s.slowMoStretch = 20.0f;
     if (g_s.mountJumpGain < 0.0f) g_s.mountJumpGain = 0.0f;
     if (g_s.mountJumpEnvMs < 10) g_s.mountJumpEnvMs = 10;
+    if (g_s.mountLandGain < 0.0f) g_s.mountLandGain = 0.0f;
+    if (g_s.mountLandEnvMs < 10) g_s.mountLandEnvMs = 10;
+    if (g_s.mountLandHeight < 0.3f) g_s.mountLandHeight = 0.3f;
     if (g_s.rideFadeMs < 0.0f) g_s.rideFadeMs = 0.0f;
     if (g_s.rideFadeMs > 5000.0f) g_s.rideFadeMs = 5000.0f;
     if (g_s.rideBeats < 1) g_s.rideBeats = 1;
@@ -767,6 +771,7 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
         cs->horseGait   = 255;
         cs->uiOverlay   = FALSE;
         cs->slowMotion  = FALSE;
+        cs->prevMountHeight = 0.0f;
         cs->horseSpeed  = 0.0f;
         cs->rideNextTick = 0;
         cs->stateGroup  = 0;
@@ -846,6 +851,23 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
         GP_LOG_DEBUG("haptics: 坐骑起跳 -> 发力反馈");
     }
     cs->wasMountJump = mountJumpNow;
+
+    
+
+
+
+    float mh = st->mountHeight;
+    if (cs->onMount && cs->prevMountHeight >= g_s.mountLandHeight &&
+        mh < 0.4f && g_s.mountLandGain > 0.0f && !cs->uiOverlay) {
+        float k = (cs->prevMountHeight - g_s.mountLandHeight) / 6.0f;   
+        if (k > 1.0f) k = 1.0f;
+        float amp = g_s.mountLandGain * (0.65f + 0.6f * k);
+        if (amp > 1.2f) amp = 1.2f;
+        GpFireEffect(controller, GP_FX_DRAW, amp, g_s.mountLandEnvMs, 2);
+        GP_LOG_DEBUG("haptics: 坐骑落地（从 %.1fm）-> 反馈（力度 %.2f）",
+                     (double)cs->prevMountHeight, (double)amp);
+    }
+    cs->prevMountHeight = mh;
     cs->horseSpeed = st->horseSpeed;
 
     

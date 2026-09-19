@@ -173,8 +173,14 @@ struct GpHapticsSettings {
 
     
     float mountJumpGain;
-    int   mountJumpEnvMs;
 
+    
+
+    float mountLandGain;
+    int   mountLandEnvMs;
+    float mountLandHeight;    
+
+    int   mountJumpEnvMs;
     
     BOOL  rideReplaceGameDummy;
 
