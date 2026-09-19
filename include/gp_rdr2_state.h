@@ -68,6 +68,7 @@ typedef struct GpRdr2State {
 
     uint8_t  horseGait;
     uint8_t  mountJumping;    
+    uint8_t  mountFalling;    
     float    mountHeight;         
 
     

@@ -86,6 +86,8 @@ struct CtrlState {
     uint8_t horseGait;   
     BOOL    wasMountJump;
     float   prevMountHeight;   
+    DWORD   airborneSince;     
+    float   peakAirHeight;     
     BOOL    uiOverlay;     
     BOOL    slowMotion;    
     float horseSpeed;
@@ -856,17 +858,33 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
 
 
 
+
+
+
+
     float mh = st->mountHeight;
-    if (cs->onMount && cs->prevMountHeight >= g_s.mountLandHeight &&
-        mh < 0.4f && g_s.mountLandGain > 0.0f && !cs->uiOverlay) {
-        float k = (cs->prevMountHeight - g_s.mountLandHeight) / 6.0f;   
-        if (k > 1.0f) k = 1.0f;
-        float amp = g_s.mountLandGain * (0.65f + 0.6f * k);
-        if (amp > 1.2f) amp = 1.2f;
-        GpFireEffect(controller, GP_FX_DRAW, amp, g_s.mountLandEnvMs, 2);
-        GP_LOG_DEBUG("haptics: 坐骑落地（从 %.1fm）-> 反馈（力度 %.2f）",
-                     (double)cs->prevMountHeight, (double)amp);
+    BOOL mountAir = (st->mountJumping || st->mountFalling ||
+                     mh >= g_s.mountLandHeight) != 0;
+
+    if (mountAir) {
+        if (cs->airborneSince == 0) cs->airborneSince = now;
+    } else if (cs->airborneSince != 0) {
+        DWORD airMs = now - cs->airborneSince;
+        cs->airborneSince = 0;
+        if (cs->onMount && airMs >= 150 && g_s.mountLandGain > 0.0f && !cs->uiOverlay) {
+            float peak = cs->peakAirHeight;
+            float k = (peak - g_s.mountLandHeight) / 6.0f;   
+            if (k < 0.0f) k = 0.0f;
+            if (k > 1.0f) k = 1.0f;
+            float amp = g_s.mountLandGain * (0.65f + 0.6f * k);
+            if (amp > 1.2f) amp = 1.2f;
+            GpFireEffect(controller, GP_FX_DRAW, amp, g_s.mountLandEnvMs, 2);
+            GP_LOG_INFO("haptics: 坐骑落地（腾空 %lums，最高 %.1fm）-> 力度 %.2f",
+                        (unsigned long)airMs, (double)peak, (double)amp);
+        }
     }
+    if (mountAir && mh > cs->peakAirHeight) cs->peakAirHeight = mh;
+    if (!mountAir) cs->peakAirHeight = 0.0f;
     cs->prevMountHeight = mh;
     cs->horseSpeed = st->horseSpeed;
 
