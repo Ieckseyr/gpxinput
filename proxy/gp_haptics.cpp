@@ -90,6 +90,7 @@ struct CtrlState {
     float   peakAirHeight;     
     BOOL    uiOverlay;     
     BOOL    slowMotion;    
+    float   slowStretch;   
     float horseSpeed;
     DWORD rideNextTick;
     float rideLevel;      
@@ -436,6 +437,12 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
     if (g_s.rideBodyBase > 0.5f) g_s.rideBodyBase = 0.5f;
     if (g_s.slowMoStretch < 1.0f) g_s.slowMoStretch = 1.0f;
     if (g_s.slowMoStretch > 20.0f) g_s.slowMoStretch = 20.0f;
+    if (g_s.slowMoWheel < 1.0f) g_s.slowMoWheel = 1.0f;
+    if (g_s.slowMoWheel > 20.0f) g_s.slowMoWheel = 20.0f;
+    if (g_s.slowMoDeadEye < 1.0f) g_s.slowMoDeadEye = 1.0f;
+    if (g_s.slowMoDeadEye > 20.0f) g_s.slowMoDeadEye = 20.0f;
+    if (g_s.slowMoEagle < 1.0f) g_s.slowMoEagle = 1.0f;
+    if (g_s.slowMoEagle > 20.0f) g_s.slowMoEagle = 20.0f;
     if (g_s.mountJumpGain < 0.0f) g_s.mountJumpGain = 0.0f;
     if (g_s.mountJumpEnvMs < 10) g_s.mountJumpEnvMs = 10;
     if (g_s.mountLandGain < 0.0f) g_s.mountLandGain = 0.0f;
@@ -837,6 +844,17 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
 
     
 
+    if (cs->slowMotion) {
+        float def = (g_s.slowMoStretch > 1.0f) ? g_s.slowMoStretch : 1.0f;
+        if (cs->uiOverlay)          cs->slowStretch = g_s.slowMoWheel   > 1.0f ? g_s.slowMoWheel   : def;
+        else if (cs->aiming)        cs->slowStretch = g_s.slowMoDeadEye > 1.0f ? g_s.slowMoDeadEye : def;
+        else                        cs->slowStretch = g_s.slowMoEagle   > 1.0f ? g_s.slowMoEagle   : def;
+    } else {
+        cs->slowStretch = 1.0f;
+    }
+
+    
+
 
 
 
@@ -1157,8 +1175,8 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
             if (period < 120) period = 120;
 
             
-            if (cs->slowMotion)
-                period = (DWORD)(period * (g_s.slowMoStretch > 1.0f ? g_s.slowMoStretch : 1.0f));
+            if (cs->slowMotion && cs->slowStretch > 1.0f)
+                period = (DWORD)(period * cs->slowStretch);
 
             
 

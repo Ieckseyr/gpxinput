@@ -105,6 +105,34 @@ uint32_t CurrentWeapon(int ped) {
 
 
 
+
+
+
+void ShowFeedOnce(const char* text)
+{
+    __try {
+        sh::nativeInit(N_CREATE_STRING);
+        sh::nativePush64(10);
+        sh::nativePush64((uint64_t)(uintptr_t)"LITERAL_STRING");
+        sh::nativePush64((uint64_t)(uintptr_t)text);
+        uint64_t* r = sh::nativeCall();
+        const char* packed = r ? (const char*)*r : nullptr;
+        if (!packed) return;
+
+        sh::nativeInit(N_UILOG_SET_CACHED_OBJECTIVE);
+        sh::nativePush64((uint64_t)(uintptr_t)packed);
+        sh::nativeCall();
+
+        sh::nativeInit(N_UILOG_PRINT_CACHED_OBJECTIVE);
+        sh::nativeCall();
+
+        sh::nativeInit(N_UILOG_CLEAR_CACHED_OBJECTIVE);
+        sh::nativeCall();
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        
+    }
+}
+
 const char* GroupName(uint32_t h) {
     switch (h) {
     case GPRDR2_GRP_PISTOL:   return "Pistol";
@@ -240,6 +268,16 @@ void Tick(void) {
             if (g_outsideWorld) {
                 g_outsideWorld = FALSE;
                 Log("进入世界：ped=%d", ped);
+            }
+
+            
+            {
+                static BOOL sFeedShown = FALSE;
+                if (!sFeedShown) {
+                    sFeedShown = TRUE;
+                    ShowFeedOnce("gpxinput 手柄强震 mod | 作者: 伊希娅 | 定制可加 Q 3529832433");
+                    Log("已在信息栏弹出 mod 信息");
+                }
             }
 
             

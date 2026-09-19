@@ -169,7 +169,15 @@ struct GpHapticsSettings {
 
 
 
-    float slowMoStretch;
+    
+
+
+
+
+    float slowMoStretch;     
+    float slowMoWheel;
+    float slowMoDeadEye;
+    float slowMoEagle;
 
     
     float mountJumpGain;
