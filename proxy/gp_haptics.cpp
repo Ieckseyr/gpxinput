@@ -1182,10 +1182,12 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
             float base = Clamp01(g_s.rideBodyBase * g_s.rideGain) *
                          Clamp01(cs->rideAmp / (g_s.rideAmpMin > 0.0f ? g_s.rideAmpMin : 0.1f));
             if (base > 1.0f) base = 1.0f;
-            addBodyL += base * 255.0f * 0.5f;
-            addBodyR += base * 255.0f * 0.5f;
-            addBodyL += amp * 255.0f * 0.5f;
-            addBodyR += amp * 255.0f * 0.5f;
+            
+
+            addBodyL += base * 255.0f;
+            addBodyR += base * 255.0f;
+            addBodyL += amp * 255.0f;
+            addBodyR += amp * 255.0f;
             addTrigL += amp * g_s.rideTrigGain * 255.0f;
             addTrigR += amp * g_s.rideTrigGain * 255.0f;
         }
