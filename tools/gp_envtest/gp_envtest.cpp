@@ -88,6 +88,7 @@ void RunRide(void) {
     st.onFoot     = 0;
 
     int pulses = 0, lastBody = 0, winPeak = 0, winTrigPeak = 0;
+    int winDump[48] = {0}, winDumpCount = 0;
     float prevSpeed = 0.0f;
     DWORD prevPulse = 0;
     DWORD gaps[32];
@@ -106,7 +107,7 @@ void RunRide(void) {
         GpHapticsOut o = {0, 0, 0, 0};
         GpTickHaptics(0, 1000 + t, FALSE, 0, 0, 0, 0, &o);
 
-        int body = o.rightMotor;
+        int body = o.rightMotor > 10 ? o.rightMotor : 0;   
         if (body > 4 && lastBody <= 4) {
             ++pulses;
             if (prevPulse && gapCount < 32) gaps[gapCount++] = t - prevPulse;
@@ -117,6 +118,7 @@ void RunRide(void) {
 
         if (body > winPeak) winPeak = body;
         if (o.rightTrigger > winTrigPeak) winTrigPeak = o.rightTrigger;
+        if (winDumpCount < 48 && body > 0) { winDump[winDumpCount++] = body; }
         
 
         if ((t % 500) == 0 && t) {
@@ -125,6 +127,12 @@ void RunRide(void) {
             winPeak = 0;
             winTrigPeak = 0;
         }
+    }
+    GpConPrintf("  ---- 走步段的脉冲形状（每 8ms 采样，非零段）: ");
+    { int run=0;
+      for (int i=0;i<winDumpCount;i++){ if(winDump[i]>0){ run++; } else { if(run){ GpConPrintf("[%dms] ", run*kStepMs); run=0; } } }
+      if(run) GpConPrintf("[%dms] ", run*kStepMs);
+      GpConPrintf("\n");
     }
     GpConPrintf("  ---- 4 秒内 %d 次踏地脉冲\n", pulses);
     if (gapCount) {

@@ -1139,9 +1139,28 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
     if (g_s.rideEnable && now < cs->rideUntil) {
         DWORD period = g_ridePeriod[controller];
         if (period >= 60) {
-            DWORD phase = (now - cs->lastPeakTick) % period;
-            float x = (float)phase / (float)period;      
-            float env = powf(1.0f - x, 1.6f);            
+            
+
+
+
+
+
+
+
+
+            const float kHoofAttackMs = 4.0f;
+            float impactMs = (float)period * 0.45f;
+            if (impactMs > 130.0f) impactMs = 130.0f;
+            if (impactMs < 45.0f)  impactMs = 45.0f;
+
+            DWORD phase = now - cs->lastPeakTick;
+            float env = 0.0f;
+            if ((float)phase < impactMs) {
+                float x = (float)phase / impactMs;               
+                float attack = ((float)phase < kHoofAttackMs)
+                               ? ((float)phase / kHoofAttackMs) : 1.0f;
+                env = attack * powf(1.0f - x, 1.8f);             
+            }
 
             
 
