@@ -87,6 +87,9 @@ struct CtrlState {
     BOOL    wasMountJump;
     BOOL    wasMountHurt;
     DWORD   lastSpookTick;   
+    DWORD   decelSince;      
+    BOOL    driftFired, rearFired;
+    DWORD   lastDriftTick, lastRearTick;
     float   prevMountHeight;   
     DWORD   airborneSince;     
     float   peakAirHeight;     
@@ -909,6 +912,37 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
     if (mountAir && mh > cs->peakAirHeight) cs->peakAirHeight = mh;
     if (!mountAir) cs->peakAirHeight = 0.0f;
     cs->prevMountHeight = mh;
+
+    
+
+
+
+
+
+    {
+        BOOL hardDecel = (st->horseAccel < -4.0f) && (st->horseSpeed > 3.0f);
+        if (hardDecel) {
+            if (cs->decelSince == 0) cs->decelSince = now;
+            DWORD ms = now - cs->decelSince;
+            if (ms > 350 && !cs->driftFired && now - cs->lastDriftTick >= 1200) {
+                GpFireEffect(controller, GP_FX_TICK, 0.55f, 260, 2);
+                cs->driftFired  = TRUE;
+                cs->lastDriftTick = now;
+                GP_LOG_INFO("haptics: 坐骑漂移/急刹 -> 滑动反馈（持续 %lums）", (unsigned long)ms);
+            }
+            if (st->horseSpeed < 2.5f && st->horseAccel < -9.0f &&
+                !cs->rearFired && now - cs->lastRearTick >= 1500) {
+                GpFireEffect(controller, GP_FX_DRAW, 0.90f, 150, 2);
+                cs->rearFired = TRUE;
+                cs->lastRearTick = now;
+                GP_LOG_INFO("haptics: 坐骑人立 -> 反馈");
+            }
+        } else {
+            cs->decelSince  = 0;
+            cs->driftFired  = FALSE;
+            cs->rearFired   = FALSE;
+        }
+    }
 
     
 

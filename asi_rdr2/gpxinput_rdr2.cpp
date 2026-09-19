@@ -549,6 +549,11 @@ void Tick(void) {
                 int pauseMenu = (int)rdr2_call0(N_IS_PAUSE_MENU_ACTIVE);
                 int hudHidden = (int)rdr2_call0(N_IS_HUD_HIDDEN);
                 int controlOn = (int)rdr2_call1(N_IS_PLAYER_CONTROL_ON, 0);
+                Log("坐骑诊断：跳=%u 坠=%u 高度=%.2fm 加速度=%.1f/s2 受伤=%u "
+                    "（跳一次后看这行，就知道落地信号到底长什么样）",
+                    g_state->mountJumping, g_state->mountFalling,
+                    (double)g_state->mountHeight, (double)g_state->horseAccel,
+                    g_state->mountHurt);
                 Log("诊断：持械=%u 瞄准=%u 开枪=%u 装弹=%u 骑马=%u 菜单=%u "
                     "弹匣(总量)=%d 弹匣(弹夹)=%d ｜ 菜单候选: 暂停菜单native=%d HUD隐藏=%d 有控制权=%d",
                     g_state->armed, g_state->aiming, g_state->shooting, g_state->reloading,
