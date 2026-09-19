@@ -185,6 +185,14 @@ struct GpHapticsSettings {
     
 
     float mountLandGain;
+
+    
+
+
+
+    float spookGain;
+    int   spookEnvMs;
+    float spookAccel;
     int   mountLandEnvMs;
     float mountLandHeight;    
 

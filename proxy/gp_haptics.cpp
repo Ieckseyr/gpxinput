@@ -85,6 +85,8 @@ struct CtrlState {
     BOOL  onMount;
     uint8_t horseGait;   
     BOOL    wasMountJump;
+    BOOL    wasMountHurt;
+    DWORD   lastSpookTick;   
     float   prevMountHeight;   
     DWORD   airborneSince;     
     float   peakAirHeight;     
@@ -448,6 +450,9 @@ void GpApplyHapticsSettings(const GpHapticsSettings& s) {
     if (g_s.mountLandGain < 0.0f) g_s.mountLandGain = 0.0f;
     if (g_s.mountLandEnvMs < 10) g_s.mountLandEnvMs = 10;
     if (g_s.mountLandHeight < 0.3f) g_s.mountLandHeight = 0.3f;
+    if (g_s.spookGain < 0.0f) g_s.spookGain = 0.0f;
+    if (g_s.spookEnvMs < 10) g_s.spookEnvMs = 10;
+    if (g_s.spookAccel > -1.0f) g_s.spookAccel = -1.0f;
     if (g_s.rideFadeMs < 0.0f) g_s.rideFadeMs = 0.0f;
     if (g_s.rideFadeMs > 5000.0f) g_s.rideFadeMs = 5000.0f;
     if (g_s.rideBeats < 1) g_s.rideBeats = 1;
@@ -904,6 +909,26 @@ void GpOnGameState(uint32_t controller, DWORD now, BOOL valid, const GpRdr2State
     if (mountAir && mh > cs->peakAirHeight) cs->peakAirHeight = mh;
     if (!mountAir) cs->peakAirHeight = 0.0f;
     cs->prevMountHeight = mh;
+
+    
+
+
+    if (cs->onMount && cs->stateValid && !cs->uiOverlay) {
+        BOOL hurtNow = st->mountHurt != 0;
+        if (hurtNow && !cs->wasMountHurt && g_s.spookGain > 0.0f) {
+            GpFireEffect(controller, GP_FX_DRAW, g_s.spookGain, g_s.spookEnvMs, 2);
+            GpFireEffect(controller, GP_FX_TICK, g_s.spookGain * 0.8f, g_s.spookEnvMs * 2, 2);
+            GP_LOG_INFO("haptics: 坐骑受惊（受伤）-> 强反馈");
+        }
+        cs->wasMountHurt = hurtNow;
+
+        if (st->horseAccel < g_s.spookAccel && st->horseSpeed > 2.0f &&
+            now - cs->lastSpookTick >= 900) {
+            GpFireEffect(controller, GP_FX_TICK, g_s.spookGain * 0.6f, g_s.spookEnvMs, 2);
+            cs->lastSpookTick = now;
+            GP_LOG_DEBUG("haptics: 坐骑急变（%.1f/s2）-> 弱反馈", (double)st->horseAccel);
+        }
+    }
     cs->horseSpeed = st->horseSpeed;
 
     

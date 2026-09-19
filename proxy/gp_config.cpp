@@ -307,6 +307,9 @@ void GpConfigLoad(GpProxyConfig* cfg) {
         h.mountLandGain    = ReadFloat(ini, L"Haptics", L"MountLandGain", h.mountLandGain);
         h.mountLandEnvMs   = ReadInt(ini, L"Haptics", L"MountLandEnvMs", h.mountLandEnvMs);
         h.mountLandHeight  = ReadFloat(ini, L"Haptics", L"MountLandHeight", h.mountLandHeight);
+        h.spookGain        = ReadFloat(ini, L"Haptics", L"SpookGain", h.spookGain);
+        h.spookEnvMs       = ReadInt(ini, L"Haptics", L"SpookEnvMs", h.spookEnvMs);
+        h.spookAccel       = ReadFloat(ini, L"Haptics", L"SpookAccel", h.spookAccel);
         h.rideBodyBase     = ReadFloat(ini, L"Haptics", L"RideBodyBase", h.rideBodyBase);
         h.rideFadeMs       = ReadFloat(ini, L"Haptics", L"RideFadeMs", h.rideFadeMs);
         h.rideBeats        = ReadInt(ini, L"Haptics", L"RideBeats", h.rideBeats);

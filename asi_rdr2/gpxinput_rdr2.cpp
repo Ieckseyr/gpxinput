@@ -370,6 +370,29 @@ void Tick(void) {
         uint64_t bits = rdr2_call1(N_GET_ENTITY_HEIGHT_ABOVE_GROUND, (uint64_t)(int64_t)mount);
         float h; memcpy(&h, &bits, sizeof(h));
         g_state->mountHeight = (h == h && h >= 0.0f && h < 500.0f) ? h : 0.0f;
+
+        
+        g_state->mountHurt =
+            (uint8_t)(rdr2_call1(N_HAS_ENTITY_BEEN_DAMAGED_BY_ANY_PED, (uint64_t)(int64_t)mount) != 0 ||
+                      rdr2_call1(N_HAS_ENTITY_BEEN_DAMAGED_BY_ANY_OBJECT, (uint64_t)(int64_t)mount) != 0 ||
+                      rdr2_call1(N_HAS_ENTITY_BEEN_DAMAGED_BY_ANY_VEHICLE, (uint64_t)(int64_t)mount) != 0);
+    }
+
+    
+
+    {
+        static float sPrevSpeed = 0.0f;
+        static DWORD sPrevTick  = 0;
+        static float sAccel     = 0.0f;
+        DWORD wt = GetTickCount();
+        if (sPrevTick == 0 || wt <= sPrevTick) {
+            sPrevSpeed = horseSpeed; sPrevTick = wt;
+        } else if (wt - sPrevTick >= 100) {
+            float a = (horseSpeed - sPrevSpeed) * 1000.0f / (float)(wt - sPrevTick);
+            sAccel = sAccel * 0.5f + a * 0.5f;         
+            sPrevSpeed = horseSpeed; sPrevTick = wt;
+        }
+        g_state->horseAccel = sAccel;
     }
 
     
