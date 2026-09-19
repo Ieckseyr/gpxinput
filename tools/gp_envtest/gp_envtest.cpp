@@ -257,7 +257,9 @@ void RunGunShot(void) {
         GpOnGameState(0, 1000 + t, TRUE, &st);
 
         GpHapticsOut o = {0, 0, 0, 0};
-        GpTickHaptics(0, 1000 + t, FALSE, 0, 0, 0, 0, &o);
+        
+
+        GpTickHaptics(0, 1000 + t, TRUE, 245, 120, 0, 0, &o);
 
         if ((int)o.leftTrigger  > pLT) pLT = o.leftTrigger;
         if ((int)o.rightTrigger > pRT) pRT = o.rightTrigger;

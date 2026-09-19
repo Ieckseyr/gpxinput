@@ -155,6 +155,15 @@ struct GpHapticsSettings {
 
 
 
+    
+
+
+
+
+
+
+    BOOL  rideReplaceGame;
+
     float rideAmpMin;
 
     

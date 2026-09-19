@@ -1169,6 +1169,13 @@ void GpTickHaptics(uint32_t controller, DWORD now, BOOL hasGame,
             float accent = (cs->rideBeats > 0 && cs->rideBeat != 0)
                            ? g_s.rideBeatAccent : 1.0f;
 
+            
+
+            if (g_s.rideReplaceGame && g_s.useGameState && cs->stateValid && cs->onMount) {
+                out->leftMotor  = 0;
+                out->rightMotor = 0;
+            }
+
             float amp = Clamp01(cs->rideAmp * g_s.rideGain) * env * accent;
             
 
